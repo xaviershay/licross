@@ -3,12 +3,12 @@
 
 module Licross.Types where
 
-import Data.Function (on)
-
 -- base
 import qualified Data.List as L
 import qualified Data.Maybe
 import qualified Data.Ord
+import Data.Function (on)
+import GHC.Generics (Generic)
 
 -- text
 import qualified Data.Text as T
@@ -19,8 +19,6 @@ import qualified Data.HashMap.Strict as M
 
 -- hashable
 import Data.Hashable
-
-import GHC.Generics (Generic)
 
 data Position = Position
   { yPos :: Integer
@@ -63,6 +61,10 @@ data Player = Player
   , playerScore :: Integer
   , playerName :: Text
   } deriving (Show)
+
+newtype PlayerId = PlayerId Integer
+
+data Move = PlayTiles PlayerId (M.HashMap Position PlacedTile)
 
 newtype Board =
   Board (M.HashMap Position Space)
