@@ -1,7 +1,7 @@
 name:                licross
 version:             0.1.0.0
 github:              "xaviershay/licross"
-license:             GPLv3
+license:             GPL-3
 author:              "Xavier Shay"
 maintainer:          "contact@xaviershay.com"
 copyright:           "2018 Xavier Shay"
