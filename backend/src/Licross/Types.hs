@@ -3,11 +3,11 @@
 
 module Licross.Types where
 
+import Data.Function (on)
 -- base
 import qualified Data.List as L
 import qualified Data.Maybe
 import qualified Data.Ord
-import Data.Function (on)
 import GHC.Generics (Generic)
 
 -- text
@@ -19,6 +19,9 @@ import qualified Data.HashMap.Strict as M
 
 -- hashable
 import Data.Hashable
+
+-- lens
+import Control.Lens
 
 data Position = Position
   { yPos :: Integer
@@ -53,8 +56,12 @@ data Bonus
 
 data Space = Space
   { spaceBonus :: Bonus
-  , spaceOccupant :: Maybe PlacedTile
+  , _spaceOccupant :: Maybe PlacedTile
   } deriving (Eq, Show)
+
+spaceOccupant :: Lens' Space (Maybe PlacedTile)
+spaceOccupant f parent =
+  fmap (\x -> parent {_spaceOccupant = x}) (f (_spaceOccupant parent))
 
 data Player = Player
   { playerRack :: [Tile]
@@ -62,22 +69,27 @@ data Player = Player
   , playerName :: Text
   } deriving (Show)
 
-newtype PlayerId = PlayerId Integer
+newtype PlayerId =
+  PlayerId Integer
 
-data Move = PlayTiles PlayerId (M.HashMap Position PlacedTile)
+data Move =
+  PlayTiles PlayerId
+            (M.HashMap Position PlacedTile)
 
-newtype Board =
-  Board (M.HashMap Position Space)
+type Board = M.HashMap Position Space
 
 data Game = Game
-  { gameBoard :: Board
-  , gameBag :: [Tile]
-  , gamePlayers :: [Player]
+  { _gameBoard :: Board
+  , _gameBag :: [Tile]
+  , _gamePlayers :: [Player]
   }
+
+gameBoard :: Lens' Game Board
+gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
 
 showSpace :: Space -> T.Text
 showSpace space =
-  case spaceOccupant space of
+  case view spaceOccupant space of
     Nothing -> showBonus (spaceBonus space)
     Just (PlacedTile text _) -> " " <> text <> " "
 
@@ -91,13 +103,12 @@ showBonus Anchor = " * "
 showBonus (CompositeBonus a _) = showBonus a
 
 showBoard :: Board -> T.Text
-showBoard (Board board) =
+showBoard board =
   let positions =
         L.groupBy ((==) `on` (yPos . fst)) . L.sortBy (compare `on` fst) $
         M.toList board
    in T.intercalate "\n" .
-      map
-        ((<>) " " . T.intercalate " | " . map (showSpace . snd)) $
+      map ((<>) " " . T.intercalate " | " . map (showSpace . snd)) $
       positions
 
 -- Standard instances

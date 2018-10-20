@@ -5,6 +5,7 @@ module Main where
 -- unordered-containers
 import qualified Data.HashMap.Strict as M
 
+import Licross.Prelude
 import Licross.FakeData
 import Licross.Types
 
@@ -15,7 +16,7 @@ main =
   putStrLn .
   T.unpack .
   showBoard .
-  gameBoard .
+  view gameBoard .
   applyMove
     (PlayTiles
        (PlayerId 1)

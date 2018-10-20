@@ -24,6 +24,7 @@ dependencies:
 - text
 - unordered-containers
 - hashable
+- lens
 
 library:
   source-dirs: src
