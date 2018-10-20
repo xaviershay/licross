@@ -3,11 +3,8 @@
 
 module Licross.Types where
 
-import Data.Function (on)
 -- base
 import qualified Data.List as L
-import qualified Data.Maybe
-import qualified Data.Ord
 import GHC.Generics (Generic)
 
 -- text
@@ -18,10 +15,13 @@ import Data.Text (Text(..))
 import qualified Data.HashMap.Strict as M
 
 -- hashable
-import Data.Hashable
+import Data.Hashable (Hashable(..))
 
 -- lens
-import Control.Lens
+import qualified Control.Lens
+
+-- licross
+import Licross.Prelude
 
 data Position = Position
   { yPos :: Integer
@@ -59,7 +59,7 @@ data Space = Space
   , _spaceOccupant :: Maybe PlacedTile
   } deriving (Eq, Show)
 
-spaceOccupant :: Lens' Space (Maybe PlacedTile)
+spaceOccupant :: Control.Lens.Lens' Space (Maybe PlacedTile)
 spaceOccupant f parent =
   fmap (\x -> parent {_spaceOccupant = x}) (f (_spaceOccupant parent))
 
@@ -84,7 +84,7 @@ data Game = Game
   , _gamePlayers :: [Player]
   }
 
-gameBoard :: Lens' Game Board
+gameBoard :: Control.Lens.Lens' Game Board
 gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
 
 showSpace :: Space -> T.Text
