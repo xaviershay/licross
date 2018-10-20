@@ -13,7 +13,7 @@ text {
   font-weight: bold;
 }
 body {
-  background-color: "#eee"
+  background-color: #1a1a1a
 }
   </style>
   <body>
@@ -74,8 +74,23 @@ body {
     }
   }
 
-// https://www.colourlovers.com/palette/92095/Giant_Goldfish
+// gold #d59120
+// green #759900
+// red #ac524f
+// another green #92B166
+// background #DEE3E6
 const BONUS_COLORS = {
+  "none": "#738896",
+  "TW": "#ac524f",
+  "DW": "#ef928f",
+  "TL": "#759900",
+  "DL": "#69D2E7",
+  "★": "#cc12bf",
+  "letter": "#d59120"
+}
+
+// https://www.colourlovers.com/palette/92095/Giant_Goldfish
+const BONUS_COLORS_OLD = {
   "none": "#fff9e5",
   "TW": "#FA6900",
   "TL": "#F38630",
@@ -192,7 +207,8 @@ cell.append("rect")
   .attr("fill", d => d.letter ? BONUS_COLORS["letter"] : BONUS_COLORS[d.bonus])
   .attr("shape-rendering", "crispEdges")
   .attr("stroke-width", 0.02)
-  .attr("stroke", "white")
+  .attr("stroke", "#1a1a1a")
+  .attr("opacity", d => d.bonus == "none" ? "0.5" : "1.0")
 
 cell.filter(d => d.letter).append("text")
   .html(d => d.letter)
