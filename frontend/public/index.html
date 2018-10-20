@@ -5,318 +5,34 @@
   <link rel="stylesheet" href="https://unpkg.com/tachyons/css/tachyons.min.css">
   <style>
 .board {
-  /*
-    border-width: 5px 0 0 5px;
-    border-color: black;
-    border-style: solid;
-      */
-    background-color: black;
-    padding: 0.5px;
-    margin: 100px;
+  background-color: #eee;
+  user-select: none;
 }
-.flex-container {
-  padding: 0;
-  margin: 0;
-  list-style: none;
-  display: -webkit-box;
-  display: -moz-box;
-  display: -ms-flexbox;
-  display: -webkit-flex;
-  display: flex;
-  -webkit-flex-flow: row;
-  justify-content: space-around;
-}
-.flex-item {
-  background: tomato;
-  color: white;
-  margin: 0.5px;
-  font-weight: bold;
-  width: 6.6666%;
-}
-.score {
-  font-size: 20%;
-  position: absolute;
-  right: 2px;
-  bottom: 1px;
-}
-.inner {
-  width: 100%;
-  height: 100%;
-  display: flex;
-  flex-flow: row;
-  justify-content: center;
-  text-align: center;
+
+text {
   font-family: helvetica;
-  font-size: 5vw;
-  overflow: hidden;
-  padding-top: 0.7vw;
-  white-space: nowrap;
-    position: relative;
-}
-.flex-item:before {
-    content:'';
-    float:left;
-    padding-top:100%;
+  font-weight: bold;
 }
   </style>
   <body>
-    <div class="board">
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'>A<div class='score'>1</div></div></div>
-      <div class="flex-item"><div class='inner'>W<div class='score'>4</div></div></div>
-      <div class="flex-item"><div class='inner'>Z<div class='score'>10</div></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
+    <div class='board'>
+    <svg viewBox="0 0 150 150">
+      <svg viewBox="0 0 100 100" width='10' height='10'>
+        <rect stroke-width='3' stroke='black' width='100' height='100' fill='tomato'></rect>
+        <text class='letter' fill='white' x='50' y='57' font-size='80' text-anchor='middle' alignment-baseline='middle'>X</text>
+        <text fill='white' x='86' y='86' font-size='20' text-anchor='middle' alignment-baseline='middle'>8</text>
+      </svg>
+      <svg x="10" viewBox="0 0 100 100" width='10' height='10'>
+        <rect stroke-width='3' stroke='black' width='100' height='100' fill='tomato'></rect>
+        <text class='letter' fill='white' x='42' y='57' font-size='80' text-anchor='middle' alignment-baseline='middle'>Q</text>
+        <text fill='white' x='82' y='86' font-size='20' text-anchor='middle' alignment-baseline='middle'>10</text>
+      </svg>
+      <svg x="20" viewBox="0 0 100 100" width='10' height='10'>
+        <rect stroke-width='3' stroke='black' width='100' height='100' fill='tomato'></rect>
+        <text class='letter' fill='white' x='42' y='57' font-size='80' text-anchor='middle' alignment-baseline='middle'>Z</text>
+        <text fill='white' x='82' y='86' font-size='20' text-anchor='middle' alignment-baseline='middle'>10</text>
+      </svg>
+    </svg>
     </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    <div class="flex-container">
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-      <div class="flex-item"><div class='inner'></div></div>
-    </div>
-    </div>
-
   </body>
 </html>
