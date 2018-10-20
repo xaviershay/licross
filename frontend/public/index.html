@@ -4,278 +4,330 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link rel="stylesheet" href="https://unpkg.com/tachyons/css/tachyons.min.css">
   <style>
-table {
-    table-layout: fixed;
-    width: 100%;
-    border-collapse: collapse;
+.board {
+  /*
+    border-width: 5px 0 0 5px;
+    border-color: black;
+    border-style: solid;
+      */
+    background-color: black;
+    padding: 0.5px;
 }
-td {
-    border: black 1px solid;
-    height: 6.6666666vw;
-    text-align: center;
-    font-family: helvetica;
+.flex-container {
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    display: -webkit-box;
+    display: -moz-box;
+    display: -ms-flexbox;
+    display: -webkit-flex;
+    display: flex;
+    -webkit-flex-flow: row;
+    justify-content: space-around;
+
+    /*line-height:30px;*/
+}
+.flex-item {
+    background: tomato;
+    color: white;
+    margin: 0.5px;
     font-weight: bold;
-    font-size: 4vw;
+    font-size: 1.5em;
+    width: 6.6666%;
+    /*flex: 1 0 auto;8/
+    height:auto;
+
+      /*
+    display: flex;
+    flex-flow: column;
+    justify-content: center;
+    align-content: center;
+      */
+}
+.score {
+  font-size: 20%;
+  position: absolute;
+  right: 2px;
+  bottom: 1px;
+}
+.inner {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-flow: row;
+  justify-content: center;
+  text-align: center;
+  font-family: helvetica;
+  font-size: 5vw;
+  overflow: hidden;
+  padding-top: 0.7vw;
+  white-space: nowrap;
+    position: relative;
+}
+.flex-item:before {
+    content:'';
+    float:left;
+    padding-top:100%;
 }
   </style>
   <body>
-    <table>
-      <tr>
-        <td class='v-mid'>A</td>
-        <td class='v-mid'>X</td>
-        <td class='v-mid'>E</td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-      <tr>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-        <td></td>
-      </tr>
-    </table>
+    <div class="board">
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'>A<div class='score'>1</div></div></div>
+      <div class="flex-item"><div class='inner'>W<div class='score'>4</div></div></div>
+      <div class="flex-item"><div class='inner'>Z<div class='score'>10</div></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    <div class="flex-container">
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+      <div class="flex-item"><div class='inner'></div></div>
+    </div>
+    </div>
 
   </body>
 </html>
