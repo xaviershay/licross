@@ -1,4 +1,13 @@
 const gridSize = 15
+const BONUS_COLORS = {
+  "none": "#738896",
+  "TW": "#ac524f",
+  "DW": "#ef928f",
+  "TL": "#759900",
+  "DL": "#69D2E7",
+  "★": "#cc12bf",
+  "letter": "#d59120"
+}
 
 boardData = []
 for (let x = 0; x < gridSize; x++) {
@@ -24,9 +33,9 @@ for (let x = 0; x < gridSize; x++) {
 
 tileData = [
   {"id": 1, "letter": "Z", "score": 10, "location": ["rack", 0], "moveable": true},
-  {"id": 2, "letter": "Q", "score": 10, "location": ["board", [0, 0]], "moveable": false},
-  {"id": 3, "letter": "Q", "score": 10, "location": ["board", [1, 0]], "moveable": false},
-  {"id": 4, "letter": "X", "score": 8, "location": ["board", [1, 1]], "moveable": false},
+  {"id": 2, "letter": "Q", "score": 10, "location": ["board", [5, 0]], "moveable": false},
+  {"id": 3, "letter": "Q", "score": 10, "location": ["board", [5, 0]], "moveable": false},
+  {"id": 4, "letter": "X", "score": 8, "location": ["board", [5, 1]], "moveable": false},
 ]
    // } else if (x == 1 && y == 0) {
    //   content = {"letter": "X", "score": 8}
@@ -70,12 +79,14 @@ function redraw() {
     .attr('width', containerWidth)
     .attr('height', containerHeight)
 
+  /*
   let rack = container.append('rect')
-      .attr('fill', 'tomato')
+      .attr('fill', BONUS_COLORS["none"])
       .attr('x', (containerWidth - rackWidth) / 2)
       .attr('y', boardSize + gutter)
       .attr('width', rackWidth)
       .attr('height', rackHeight)
+      */
 
   let cell = container.selectAll('.space').data(boardData).enter()
     .append('g')
@@ -83,11 +94,20 @@ function redraw() {
       .attr('transform', d => "translate(" + tilesToPixels(d.xPos) + "," + tilesToPixels(d.yPos) + ")")
 
   cell.append('rect')
-    .attr('fill', 'green')
+    .attr('fill', d => BONUS_COLORS[d.bonus])
     .attr('width', tileSize)
     .attr('height', tileSize)
     .attr('x', borderWidth)
     .attr('y', borderWidth)
+
+  cell.filter(d => d.bonus != "none").append('text')
+    .attr("x", borderWidth + tileSize * 0.5)
+    .attr("y", borderWidth + tileSize * 0.53)
+    .attr("font-size", tileSize * 0.45)
+    .attr("fill", "white")
+    .attr("text-anchor", "middle")
+    .attr("alignment-baseline", "middle")
+    .html(d => d.bonus)
 
   update(tileData)
 }
@@ -160,7 +180,7 @@ function update(tileData) {
       })
 
   tilesEnter.append('rect')
-      .attr('fill', 'gold')
+      .attr('fill', BONUS_COLORS["letter"])
       .attr('width', tileSize)
       .attr('height', tileSize)
 
