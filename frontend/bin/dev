@@ -1,0 +1,6 @@
+#!/bin/bash
+
+set ex
+
+cd public
+exec browser-sync start --server --files "*"
