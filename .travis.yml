@@ -33,8 +33,10 @@ before_install:
 
 install:
 # Build dependencies
+- cd backend
 - stack --no-terminal --install-ghc test --only-dependencies
 
 script:
 # Build the package, its tests, and its docs and run the tests
+- cd backend
 - stack --no-terminal test --haddock --no-haddock-deps
