@@ -2,6 +2,7 @@ module Licross.Prelude
   ( module Control.Lens
   , module Data.Function
   , module Data.Ord
+  , module Data.List
   ) where
 
 -- lens
@@ -20,3 +21,4 @@ import Control.Lens
 -- commond base functions
 import Data.Function (on)
 import Data.Ord (comparing)
+import Data.List (sortBy, groupBy)

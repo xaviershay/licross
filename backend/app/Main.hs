@@ -21,8 +21,8 @@ main =
     (PlayTiles
        (PlayerId 1)
        (M.fromList
-          [ (Position 1 1, mkPlacedTile "A" 1)
-          , (Position 1 2, mkPlacedTile "B" 3)
+          [ (mkPos 1 1, mkPlacedTile "A" 1)
+          , (mkPos 1 2, mkPlacedTile "B" 3)
           ])) $
   emptyGame
 

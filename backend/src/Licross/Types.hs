@@ -1,10 +1,30 @@
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Licross.Types where
+module Licross.Types
+  -- Types
+  ( Position
+  , Game
+  , Board(..)
+  , PlacedTile(..)
+  , PlayerId(..)
+  , Move(..)
+  , Bonus(..)
+  -- Constructors
+  , mkPos
+  , mkPlacedTile
+  , emptySpace
+  , emptyGame
+  -- lens
+  , spaceBonus
+  , spaceOccupant
+  , gameBoard
+  , showBoard
+  , xPos
+  , yPos
+  ) where
 
 -- base
-import qualified Data.List as L
 import GHC.Generics (Generic)
 
 -- text
@@ -27,6 +47,8 @@ data Position = Position
   { yPos :: Integer
   , xPos :: Integer
   } deriving (Show, Eq, Generic, Ord)
+
+mkPos x y = Position {xPos = x, yPos = y}
 
 instance Hashable Position
 
@@ -55,13 +77,19 @@ data Bonus
   deriving (Show, Eq)
 
 data Space = Space
-  { spaceBonus :: Bonus
+  { _spaceBonus :: Bonus
   , _spaceOccupant :: Maybe PlacedTile
   } deriving (Eq, Show)
+
+emptySpace = Space None Nothing
 
 spaceOccupant :: Control.Lens.Lens' Space (Maybe PlacedTile)
 spaceOccupant f parent =
   fmap (\x -> parent {_spaceOccupant = x}) (f (_spaceOccupant parent))
+
+spaceBonus :: Control.Lens.Lens' Space Bonus
+spaceBonus f parent =
+  fmap (\x -> parent {_spaceBonus = x}) (f (_spaceBonus parent))
 
 data Player = Player
   { playerRack :: [Tile]
@@ -90,7 +118,7 @@ gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
 showSpace :: Space -> T.Text
 showSpace space =
   case view spaceOccupant space of
-    Nothing -> showBonus (spaceBonus space)
+    Nothing -> showBonus (view spaceBonus space)
     Just (PlacedTile text _) -> " " <> text <> " "
 
 showBonus :: Bonus -> T.Text
@@ -105,7 +133,7 @@ showBonus (CompositeBonus a _) = showBonus a
 showBoard :: Board -> T.Text
 showBoard board =
   let positions =
-        L.groupBy ((==) `on` (yPos . fst)) . L.sortBy (compare `on` fst) $
+        groupBy ((==) `on` (yPos . fst)) . sortBy (compare `on` fst) $
         M.toList board
    in T.intercalate "\n" .
       map ((<>) " " . T.intercalate " | " . map (showSpace . snd)) $
@@ -117,3 +145,16 @@ instance Semigroup Bonus where
 
 instance Monoid Bonus where
   mempty = None
+
+-- Constructors
+emptyGame =
+  Game
+    { _gameBoard =
+        M.fromList
+          [(mkPos x y, Space None Nothing) | x <- [0 .. 8], y <- [0 .. 8]]
+    , _gameBag = mempty
+    , _gamePlayers = mempty
+    }
+
+mkPlacedTile letter score =
+  PlacedTile letter (Tile {tileText = Letter letter, tilePoints = score})
