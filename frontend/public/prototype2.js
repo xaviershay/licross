@@ -2,10 +2,10 @@ const gridSize = 15
 const BONUS_COLORS = {
   "none": "#738896",
   "tw": "#ac524f",
-  "dw": "#ef928f",
   "tl": "#759900",
-  "dl": "#69D2E7",
-  "anchor": "#cc12bf",
+  "dl": "#699be7",
+  "dw": "#c62dbc",
+  "anchor": "#c62dbc",
   "letter": "#d59120"
 }
 
