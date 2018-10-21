@@ -68,14 +68,14 @@ function redraw() {
 
   containerWidth = boardSize + borderWidth
   containerHeight = boardSize + gutter + rackHeight
+  containerColor = '#333'
 
   let container = d3.select("#board").append('svg')
     .attr('width', containerWidth)
     .attr('height', containerHeight)
 
   container.append('rect')
-    .attr('opacity', 0.2)
-    .attr('fill', '#aaa')
+    .attr('fill', containerColor)
     .attr('width', containerWidth)
     .attr('height', containerHeight)
 
@@ -120,9 +120,9 @@ function update(tileData) {
   function tileLocation(loc) {
     switch (loc[0]) {
       case "board":
-        return [tilesToPixels(loc[1][0]) + borderWidth, tilesToPixels(loc[1][1]) + borderWidth]
+        return [tilesToPixels(loc[1][0]), tilesToPixels(loc[1][1])]
       case "rack":
-        return [tilesToPixels(loc[1]) + borderWidth + (containerWidth - rackWidth) / 2, boardSize + gutter + borderWidth]
+        return [tilesToPixels(loc[1]) + (containerWidth - rackWidth) / 2, boardSize + gutter + borderWidth]
       default: console.log("Unknown location: " + loc)
     }
   }
@@ -180,14 +180,21 @@ function update(tileData) {
       })
 
   tilesEnter.append('rect')
+      .attr('fill', containerColor)
+      .attr('width', tileSize + borderWidth * 2)
+      .attr('height', tileSize + borderWidth * 2)
+
+  tilesEnter.append('rect')
       .attr('fill', BONUS_COLORS["letter"])
+      .attr('x', borderWidth)
+      .attr('y', borderWidth)
       .attr('width', tileSize)
       .attr('height', tileSize)
 
   let contentEnter = tilesEnter.append('text')
     .attr("class", "content")
-    .attr("x", tileSize * 0.5)
-    .attr("y", tileSize * 0.55)
+    .attr("x", borderWidth + tileSize * 0.5)
+    .attr("y", borderWidth + tileSize * 0.55)
     .attr("font-size", tileSize * 0.8)
     .attr("fill", "white")
     .attr("text-anchor", "middle")
@@ -198,8 +205,8 @@ function update(tileData) {
 
   let scoreEnter = tilesEnter.append('text')
     .attr("class", "score")
-    .attr("x", tileSize * 0.86)
-    .attr("y", tileSize * 0.86)
+    .attr("x", borderWidth + tileSize * 0.86)
+    .attr("y", borderWidth + tileSize * 0.86)
     .attr("fill", "white")
     .attr("text-anchor", "middle")
     .attr("alignment-baseline", "middle")
