@@ -10,6 +10,8 @@ module Licross.Types
   , PlayerId(..)
   , Move(..)
   , Bonus(..)
+  , RedactedGame(..)
+  , Space
   -- Constructors
   , mkPos
   , mkPlacedTile
@@ -19,9 +21,13 @@ module Licross.Types
   , spaceBonus
   , spaceOccupant
   , gameBoard
+  , gamePlayers
+  , gameBag
   , showBoard
+  -- accessors
   , xPos
   , yPos
+  , tilePoints
   ) where
 
 -- base
@@ -112,8 +118,22 @@ data Game = Game
   , _gamePlayers :: [Player]
   }
 
+-- A redacted type if effectively a newtype that allows for different JSON
+-- representations of an object to be shown to different players/observers.
+data RedactedGame = RedactedGame (Maybe PlayerId) Game
+
+newtype GameId = GameId Int deriving (Show, Eq)
+
 gameBoard :: Control.Lens.Lens' Game Board
 gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
+
+gameBag :: Control.Lens.Lens' Game [Tile]
+gameBag f parent =
+  fmap (\x -> parent {_gameBag = x}) (f (_gameBag parent))
+
+gamePlayers :: Control.Lens.Lens' Game [Player]
+gamePlayers f parent =
+  fmap (\x -> parent {_gamePlayers = x}) (f (_gamePlayers parent))
 
 showSpace :: Space -> T.Text
 showSpace space =

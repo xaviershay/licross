@@ -8,11 +8,15 @@ import qualified Data.HashMap.Strict as M
 import Licross.Prelude
 import Licross.FakeData
 import Licross.Types
+import Licross.Api
 
 import qualified Data.Text as T
 
 main :: IO ()
-main =
+main = Licross.Api.runServer 8080
+
+main2 :: IO ()
+main2 =
   putStrLn .
   T.unpack .
   showBoard .
