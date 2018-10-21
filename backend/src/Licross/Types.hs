@@ -166,12 +166,19 @@ instance Semigroup Bonus where
 instance Monoid Bonus where
   mempty = None
 
+instance Semigroup Position where
+  a <> b = mkPos (xPos a + xPos b) (yPos a + yPos b)
+
+instance Monoid Position where
+  mempty = mkPos 0 0
+
 -- Constructors
+-- TODO: This isn't actually an empty constructor, board should be empty too.
 emptyGame =
   Game
     { _gameBoard =
         M.fromList
-          [(mkPos x y, Space None Nothing) | x <- [0 .. 8], y <- [0 .. 8]]
+          [(mkPos x y, Space None Nothing) | x <- [0 .. 14], y <- [0 .. 14]]
     , _gameBag = mempty
     , _gamePlayers = mempty
     }

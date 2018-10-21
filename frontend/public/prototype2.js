@@ -1,53 +1,40 @@
 const gridSize = 15
 const BONUS_COLORS = {
   "none": "#738896",
-  "TW": "#ac524f",
-  "DW": "#ef928f",
-  "TL": "#759900",
-  "DL": "#69D2E7",
-  "★": "#cc12bf",
+  "tw": "#ac524f",
+  "dw": "#ef928f",
+  "tl": "#759900",
+  "dl": "#69D2E7",
+  "anchor": "#cc12bf",
   "letter": "#d59120"
 }
 
-boardData = []
-for (let x = 0; x < gridSize; x++) {
-  for (let y = 0; y < gridSize; y++) {
-    let content = {"bonus": "none"}
+let boardData = []
+let tileData = []
 
-    if (x == 0 && y == 0) {
-      content = {"bonus": "TW"}
-    } else if (x == 1 && y == 1) {
-      content = {"bonus": "DW"}
-    } else if (x == 3 && y == 3) {
-      content = {"bonus": "TL"}
-    } else if (x == 4 && y == 0) {
-      content = {"bonus": "DL"}
-    } else if (x == 7 && y == 7) {
-      content = {"bonus": "★"}
+d3.json("http://localhost:8080/example").then(function (response) {
+  boardData = []
+  tileData = []
+  id = 0
+  response.board.forEach(space => {
+    if (space.letter) {
+      id += 1;
+      tileData.push(
+        {
+          "id": id,
+          "letter": space.letter,
+          "score": space.score,
+          "location": ["board", [space.x, space.y]], "moveable": false
+        }
+      )
     }
-    boardData.push(
-      deepmerge({"key": x + "," + y, "xPos": x, "yPos": y, "bonus": "none"}, content)
-    )
-  }
-}
 
-tileData = [
-  {"id": 1, "letter": "Z", "score": 10, "location": ["rack", 0], "moveable": true},
-  {"id": 2, "letter": "Q", "score": 10, "location": ["board", [5, 0]], "moveable": false},
-  {"id": 3, "letter": "Q", "score": 10, "location": ["board", [5, 0]], "moveable": false},
-  {"id": 4, "letter": "X", "score": 8, "location": ["board", [5, 1]], "moveable": false},
-]
-   // } else if (x == 1 && y == 0) {
-   //   content = {"letter": "X", "score": 8}
-   // } else if (x == 3 && y == 6) {
-   //   content = {"letter": "A", "score": 1}
-   // } else if (x == 4 && y == 6) {
-   //   content = {"letter": "W", "score": 4, "bonus": "TW"}
-   // } else if (x == 3 && y == 7) {
-   //   content = {"letter": "Q", "score": 10}
-   // } else if (x == 3 && y == 8) {
-   //   content = {"letter": "Z", "score": 10}
-   // }
+    const {x, y, bonus, ...partial} = space;
+
+    boardData.push({ x, y, bonus})
+  })
+  redraw(boardData)
+})
 
 var tileSize = 0;
 var borderWidth = 2;
@@ -57,8 +44,12 @@ const gridWidth = 15
 function tilesToPixels(n) {
   return tileSize * n + borderWidth * n
 }
-function redraw() {
-  // TODO: Remove any existing nodes
+
+// Everything in this function should be static relative to tileSize, such as
+// bonus labels. For anything that changes during gameplace, such as tiles, it
+// must be draw in the update function (called at the end of this function
+// too).
+function redraw(boardData) {
   d3.select("svg").remove()
 
   boardSize = tilesToPixels(gridWidth)
@@ -70,6 +61,7 @@ function redraw() {
   containerHeight = boardSize + gutter + rackHeight
   containerColor = '#333'
 
+  // GAME AREA BACKGROUND
   let container = d3.select("#board").append('svg')
     .attr('width', containerWidth)
     .attr('height', containerHeight)
@@ -79,19 +71,11 @@ function redraw() {
     .attr('width', containerWidth)
     .attr('height', containerHeight)
 
-  /*
-  let rack = container.append('rect')
-      .attr('fill', BONUS_COLORS["none"])
-      .attr('x', (containerWidth - rackWidth) / 2)
-      .attr('y', boardSize + gutter)
-      .attr('width', rackWidth)
-      .attr('height', rackHeight)
-      */
-
+  // CELL BACKGROUNDS
   let cell = container.selectAll('.space').data(boardData).enter()
     .append('g')
       .attr('class', 'space')
-      .attr('transform', d => "translate(" + tilesToPixels(d.xPos) + "," + tilesToPixels(d.yPos) + ")")
+      .attr('transform', d => "translate(" + tilesToPixels(d.x) + "," + tilesToPixels(d.y) + ")")
 
   cell.append('rect')
     .attr('fill', d => BONUS_COLORS[d.bonus])
@@ -107,7 +91,7 @@ function redraw() {
     .attr("fill", "white")
     .attr("text-anchor", "middle")
     .attr("alignment-baseline", "middle")
-    .html(d => d.bonus)
+    .html(d => d.bonus == "anchor" ? "☪" : d.bonus.toUpperCase())
 
   update(tileData)
 }
@@ -141,12 +125,15 @@ function update(tileData) {
           current = d3.select(this).raise()
           deltaX = tileLocation(d.location)[0] - d3.event.x
           deltaY = tileLocation(d.location)[1] - d3.event.y
+          console.log(deltaX, deltaY)
         })
         .on("drag", function(d) {
           x = d3.event.x + deltaX
           y = d3.event.y + deltaY
-          xPos = Math.floor(x / (tileSize + 1))
-          yPos = Math.floor(y / (tileSize + 1))
+
+          // TODO: Highlight cell being hovered over
+          // xPos = Math.floor(x / (tileSize + 1))
+          // yPos = Math.floor(y / (tileSize + 1))
           d3.select(this)
             .attr('transform', d => "translate(" + x + "," + y + ")")
         })
@@ -235,16 +222,16 @@ function responsify(svg) {
     let targetWidth = parseInt(container.style('width'))
     oldTileWidth = tileSize;
     if (targetWidth <= 450) {
-      console.log("targeting mobile")
+      //console.log("targeting mobile")
       tileSize = 25;
     } else {
-      console.log("targeting desktop")
+      //console.log("targeting desktop")
       tileSize = 60;
     }
     if (oldTileWidth != tileSize) {
-      redraw()
+      redraw(boardData)
     }
-    console.log(targetWidth)
+    //console.log(targetWidth)
 
   }
 }

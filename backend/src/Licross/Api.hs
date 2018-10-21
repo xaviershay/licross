@@ -1,29 +1,27 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Licross.Api
   ( runServer
   ) where
 
--- text
-import qualified Data.Text as T
+import qualified Data.HashMap.Strict as M -- unordered-containers
+import Network.Wai -- wai
+import Network.Wai.Handler.Warp -- warp
+import Network.Wai.Middleware.Cors -- wai-cors
+import Network.Wai.Middleware.RequestLogger -- wai-extra
+import Servant -- servant-server
 
--- servant-server
-import Servant
-
--- wai
-import Network.Wai
-import Network.Wai.Handler.Warp
-
--- licross
+import Licross.FakeData
+import Licross.Json
 import Licross.Prelude
 import Licross.Types
-import Licross.Json
 
-type GameAPI = "example" :> Get '[JSON] RedactedGame
+type GameAPI = "example" :> Get '[ JSON] RedactedGame
 
 example :: RedactedGame
-example = RedactedGame Nothing emptyGame
+example = RedactedGame Nothing titleGame
 
 server :: Servant.Server GameAPI
 server = return example
@@ -32,7 +30,16 @@ gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy
 
 app :: Network.Wai.Application
-app = Servant.serve gameAPI server
+app =
+  Network.Wai.Middleware.RequestLogger.logStdoutDev $
+  Network.Wai.Middleware.Cors.cors (const . Just $ corsPolicy) $
+  Servant.serve gameAPI server
+  where
+    corsPolicy =
+      Network.Wai.Middleware.Cors.simpleCorsResourcePolicy
+        { Network.Wai.Middleware.Cors.corsRequestHeaders =
+            ["authorization", "content-type"]
+        }
 
 runServer :: Int -> IO ()
 runServer port = Network.Wai.Handler.Warp.run port app

@@ -28,6 +28,8 @@ dependencies:
 - text
 - unordered-containers
 - wai
+- wai-cors
+- wai-extra
 - warp
 
 library:
