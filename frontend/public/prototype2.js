@@ -128,6 +128,11 @@ function update(tileData) {
   }
 
   let deltaX, deltaY;
+  let transformF = d => {
+    const x = tileLocation(d.location)[0]
+    const y = tileLocation(d.location)[1]
+    return "translate(" + x + "," + y + ")"
+  }
   let tilesEnter = tiles.enter()
     .append('g')
       .attr('class', 'tile')
@@ -171,13 +176,13 @@ function update(tileData) {
           update(tileData)
         })
       )
+      .attr('transform', transformF)
 
   tiles.merge(tilesEnter)
-      .attr('transform', d => {
-        const x = tileLocation(d.location)[0]
-        const y = tileLocation(d.location)[1]
-        return "translate(" + x + "," + y + ")"
-      })
+      .transition()
+      // This transform is duplicated in enter selection, so that the initial
+      // placement doesn't animate, only subsequent updates.
+      .attr('transform', transformF)
 
   tilesEnter.append('rect')
       .attr('fill', containerColor)
