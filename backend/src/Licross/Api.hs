@@ -18,13 +18,39 @@ import Licross.Json
 import Licross.Prelude
 import Licross.Types
 
-type GameAPI = "example" :> Get '[ JSON] RedactedGame
+instance Servant.FromHttpApiData GameId where
+  parseUrlPiece x = parseUrlPiece x >>= return . GameId
 
-example :: RedactedGame
-example = RedactedGame Nothing titleGame
+instance Servant.FromHttpApiData PlayerId where
+  parseUrlPiece x = parseUrlPiece x >>= return . PlayerId
+
+-- Not using nested APIs here, though it would technically DRY things up. Might
+-- revisit, but for now was creating too much conceptual overhead for little
+-- benefit.
+type GameAPI
+   = "example" :> Get '[ JSON] RedactedGame
+     :<|> "game" :> Post '[ JSON] GameId
+     :<|> "game" :> Capture "id" GameId :> "join" :> Post '[ JSON] PlayerId
+     :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
+     :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> Raw
+
+example :: Servant.Handler RedactedGame
+example = return $ RedactedGame Nothing titleGame
+
+joinGame :: GameId -> Handler PlayerId
+joinGame = error ""
+
+newGame :: Handler GameId
+newGame = error ""
+
+postMove :: GameId -> PlayerId -> Move -> Handler ()
+postMove = error ""
+
+subscribeGame :: GameId -> PlayerId -> Server Raw
+subscribeGame = error ""
 
 server :: Servant.Server GameAPI
-server = return example
+server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
 
 gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy

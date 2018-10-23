@@ -44,3 +44,11 @@ instance ToJSON Bonus where
 
 jsonString :: String -> Data.Aeson.Value
 jsonString x = toJSON x
+
+instance ToJSON PlayerId
+instance ToJSON GameId
+
+instance FromJSON Move where
+  parseJSON = withObject "Move" $ \v -> do
+    pure (PlayTiles (PlayerId 0) mempty)
+  

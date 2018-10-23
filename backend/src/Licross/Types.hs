@@ -12,6 +12,7 @@ module Licross.Types
   , Bonus(..)
   , RedactedGame(..)
   , Space
+  , GameId(..)
   -- Constructors
   , mkPos
   , mkPlacedTile
@@ -105,7 +106,10 @@ data Player = Player
 
 newtype PlayerId =
   PlayerId Integer
+  deriving (Show, Eq, Generic)
 
+-- TODO: Need to move PlayerId outside this type, so that API FromJSON etc can
+-- work nicely.
 data Move =
   PlayTiles PlayerId
             (M.HashMap Position PlacedTile)
@@ -122,7 +126,7 @@ data Game = Game
 -- representations of an object to be shown to different players/observers.
 data RedactedGame = RedactedGame (Maybe PlayerId) Game
 
-newtype GameId = GameId Int deriving (Show, Eq)
+newtype GameId = GameId Int deriving (Show, Eq, Generic)
 
 gameBoard :: Control.Lens.Lens' Game Board
 gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
