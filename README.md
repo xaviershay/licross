@@ -4,6 +4,8 @@ Like Lichess but for crossword games.
 
 Not a real thing.
 
+![https://raw.githubusercontent.com/xaviershay/licross/master/doc/title-screen.png](Title Screen)
+
 ## Development
 
     # First terminal
