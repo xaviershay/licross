@@ -1,5 +1,7 @@
 # Licross
 
+![Build Status](https://travis-ci.com/xaviershay/licross.svg?branch=master)
+
 Like Lichess but for crossword games.
 
 Not a real thing.
