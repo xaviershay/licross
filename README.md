@@ -29,4 +29,4 @@ just want to mix it up a bit.
 * Write lens out by hand rather than use template haskell. No particular
   reason, just want to try it to see how painful it is.
 * `hindent` everything.
-* Separate imports by source package.
+* Label imports with source package.
