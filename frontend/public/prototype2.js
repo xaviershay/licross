@@ -12,29 +12,6 @@ const BONUS_COLORS = {
 let boardData = []
 let tileData = []
 
-d3.json("http://localhost:8080/example").then(function (response) {
-  boardData = []
-  tileData = []
-  id = 0
-  response.board.forEach(space => {
-    if (space.letter) {
-      id += 1;
-      tileData.push(
-        {
-          "id": id,
-          "letter": space.letter,
-          "score": space.score,
-          "location": ["board", [space.x, space.y]], "moveable": false
-        }
-      )
-    }
-
-    const {x, y, bonus, ...partial} = space;
-
-    boardData.push({ x, y, bonus})
-  })
-  redraw(boardData)
-})
 
 var tileSize = 0;
 var borderWidth = 2;
@@ -62,7 +39,7 @@ function redraw(boardData) {
   containerColor = '#333'
 
   // GAME AREA BACKGROUND
-  let container = d3.select("#board").append('svg')
+  let container = d3.select(".board").append('svg')
     .attr('width', containerWidth)
     .attr('height', containerHeight)
 
@@ -93,11 +70,12 @@ function redraw(boardData) {
     .attr("alignment-baseline", "middle")
     .html(d => d.bonus == "anchor" ? "☪" : d.bonus.toUpperCase())
 
+  console.log(tileData)
   update(tileData)
 }
 
 function update(tileData) {
-  let container = d3.select("#board").select('svg')
+  let container = d3.select(".board").select('svg')
 
   let tiles = container.selectAll('.tile').data(tileData, d => d.id)
 
@@ -235,6 +213,3 @@ function responsify(svg) {
 
   }
 }
-
-d3.select('#board').append('svg')
-  .call(responsify)

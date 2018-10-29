@@ -9,13 +9,13 @@
 }
 
 text {
-  font-family: helvetica;
+  font-family: helvetica, sans-serif;
   font-weight: bold;
 }
 body {
   background-color: #1a1a1a
 }
-#board {
+.board {
   display: flex;
   justify-content: center;
 }
@@ -24,15 +24,60 @@ rect {
 }
   </style>
   <body>
+    <div id='elm'></div>
+    <!--
     <div class='board' id='board'>
     </div>
+    -->
     <script src="https://d3js.org/d3.v5.min.js"></script>
 <script src="https://d3js.org/d3-dispatch.v1.min.js"></script>
 <script src="https://d3js.org/d3-selection.v1.min.js"></script>
 <script src="https://d3js.org/d3-drag.v1.min.js"></script>
 <script src="https://d3js.org/d3-transition.v1.min.js"></script>
-<script src="./deepmerge.js"></script>
-<script src="./prototype2.js"></script>
+<script src="/deepmerge.js"></script>
+<script src="/prototype2.js"></script>
+<script src="/elm.js"></script>
+  <script>
+    customElements.define('licross-game-area', class extends HTMLElement {
+      connectedCallback() {
+        let container = d3.select(this)
+          .append('div')
+            .attr('id', 'board')
+            .attr('class', 'board')
+
+        container.append('svg')
+          .call(responsify)
+        d3.json("http://localhost:8080/example").then(function (response) {
+          boardData = []
+          tileData = []
+          let tileId = 0
+          response.board.forEach(space => {
+            if (space.letter) {
+              tileId += 1;
+              tileData.push(
+                {
+                  "id": tileId,
+                  "letter": space.letter,
+                  "score": space.score,
+                  "location": ["board", [space.x, space.y]], "moveable": false
+                }
+              )
+            }
+
+            const {x, y, bonus, ...partial} = space;
+
+            boardData.push({ x, y, bonus})
+          })
+          console.log(tileData)
+          redraw(boardData)
+        })
+
+      }
+    })
+    var app = Elm.Main.init({
+      node: document.getElementById('elm')
+    });
+  </script>
 
   </body>
 </html>
