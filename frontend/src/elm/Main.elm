@@ -18,7 +18,7 @@ type alias Model =
 
 init : () -> ( Model, Cmd Msg )
 init flags =
-    ( 0, Cmd.none )
+    ( 1, Cmd.none )
 
 
 type Msg

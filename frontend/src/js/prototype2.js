@@ -9,6 +9,7 @@ const BONUS_COLORS = {
   "letter": "#d59120"
 }
 
+
 let boardData = []
 let tileData = []
 
