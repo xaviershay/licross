@@ -19,12 +19,13 @@ description:         Please see the README on GitHub at <https://github.com/xavi
 
 dependencies:
 - base >= 4.7 && < 5
+- bytestring
 - http-types
 - shake
+- stm
 - text
 - wai
 - warp
-- bytestring
 
 executables:
   shake-build:

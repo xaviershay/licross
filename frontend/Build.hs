@@ -1,7 +1,12 @@
-import Control.Exception (try)
+import Control.Concurrent (forkIO, threadDelay)
 import Control.Concurrent.MVar (newMVar, withMVar)
-import qualified Data.Text as T
+import Control.Concurrent.STM
+import Control.Exception (try)
+import Control.Monad (forever)
 import qualified Data.ByteString.Char8 as BS
+import qualified Data.List
+import Data.String (fromString)
+import qualified Data.Text as T
 import Development.Shake
 import Development.Shake.Command
 import Development.Shake.FilePath
@@ -11,31 +16,29 @@ import Network.Wai
   , Request(..)
   , pathInfo
   , requestMethod
-  , responseLBS
   , responseFile
+  , responseLBS
   )
 import Network.Wai.Handler.Warp (run)
 
-import Data.String (fromString)
+type BuildResult = Either ShakeException ()
 
--- Use a mutex here because Shake is single threaded. For bonus points, would
--- be neat to queue up requested paths and batch them all into the next run.
--- What would also be neat is to trigger a rebuild on save but block until
--- complete on request.
-application mutex request respond = withMVar mutex $ \_ -> do
-  let rawPath = BS.unpack $ rawPathInfo request
+type BuildHandler = [String] -> IO BuildResult
 
-  let pathWithDefault = if hasExtension rawPath then
-                          rawPath
-                        else
-                          addTrailingPathSeparator rawPath </> "index.html"
+type Builder = TVar (TQueue String, TChan BuildResult)
 
-  let path = "pkg" <> pathWithDefault
+main :: IO ()
+main = do
+  builder <- forkBuilder buildHandler
+  -- TODO: Add some logging middleware
+  run 8001 (application builder)
 
-  result <-
-    try $
+buildHandler :: BuildHandler
+buildHandler paths = do
+  putStrLn $ "Building: " <> Data.List.intercalate ", " paths
+  try $
     shake shakeOptions {shakeThreads = 0, shakeVerbosity = Normal} $ do
-      want $ [path]
+      want paths
       phony "clean" $ do
         putNormal "Cleaning files in _build"
         removeFilesAfter "_build" ["//*"]
@@ -53,6 +56,15 @@ application mutex request respond = withMVar mutex $ \_ -> do
         -- TODO: Babel is kind of slow, taking > 500ms for simple concat :(
         -- Want to blame NPM
         cmd_ "babel" files "-o pkg/app.js"
+
+application builder request respond = do
+  let rawPath = BS.unpack $ rawPathInfo request
+  let pathWithDefault =
+        if hasExtension rawPath
+          then rawPath
+          else addTrailingPathSeparator rawPath </> "index.html"
+  let path = "pkg" <> pathWithDefault
+  result <- requestBuild builder path
   case result of
     Left (ShakeException {}) ->
       respond $
@@ -61,19 +73,53 @@ application mutex request respond = withMVar mutex $ \_ -> do
         [(fromString "Content-Type", fromString "text/plain")]
         (fromString "NOPE")
     Right () -> do
-
       respond $
         -- TODO: Probably some directory traversal VULN
         responseFile
-        status200
+          status200
         -- TODO: Content-Type from file extension
-        [(fromString "Content-Type", fromString "text/html")]
-        path
-        Nothing
+          [(fromString "Content-Type", fromString "text/html")]
+          path
+          Nothing
 
-main :: IO ()
-main = do
-  mutex <- newMVar ()
+-- forkBuilder spawns a looping thread that blocks until one or more requests
+-- are queued, then batches the requests, processes them with the provided
+-- function, and returns a result to every blocked caller waiting for the
+-- request.
+forkBuilder :: BuildHandler -> IO Builder
+forkBuilder f = do
+  builder <- mkBuilder
+  forkIO . forever . handleBuildRequest builder $ f
+  return builder
+  where
+    handleBuildRequest :: Builder -> BuildHandler -> IO ()
+    handleBuildRequest builder f = do
+      newBuilder <- mkBuilder
+      (paths, chan) <- atomically (readQueue builder newBuilder)
+      result <- f paths
+      atomically $ writeTChan chan result
+    readQueue :: Builder -> Builder -> STM ([String], TChan BuildResult)
+    readQueue builder newBuilder = do
+      (pathQueue, chan) <- readTVar newBuilder >>= swapTVar builder
+      -- retry until there is at least one element in queue
+      peekTQueue pathQueue
+      paths <- flushTQueue pathQueue
+      return (paths, chan)
+    mkBuilder :: IO Builder
+    mkBuilder =
+      atomically $ do
+        q <- newTQueue
+        c <- newBroadcastTChan
+        newTVar (q, c)
 
-  -- TODO: Add some logging middleware
-  run 8001 (application mutex)
+-- requestBuild will ask the builder to build a path, and block until a result
+-- is available. The builder may batch requests, but the result is guaranteed
+-- to be from a build started after the request was made.
+requestBuild :: Builder -> String -> IO BuildResult
+requestBuild builder path = do
+  receiver <-
+    atomically $ do
+      (queue, chan) <- readTVar builder
+      writeTQueue queue path
+      dupTChan chan
+  atomically $ readTChan receiver
