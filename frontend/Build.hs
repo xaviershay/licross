@@ -119,7 +119,7 @@ application builder request respond = do
         -- TODO: Probably some directory traversal VULN
         responseFile
           status200
-        -- TODO: Content-Type from file extension
+          -- TODO: Content-Type from file extension
           [(fromString "Content-Type", fromString "text/html")]
           path
           Nothing
