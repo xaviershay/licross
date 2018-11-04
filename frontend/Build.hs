@@ -1,8 +1,8 @@
-import Control.Concurrent (forkIO, threadDelay)
+import Control.Concurrent (forkIO, killThread, myThreadId, threadDelay)
 import Control.Concurrent.MVar (newMVar, withMVar)
 import Control.Concurrent.STM
 import Control.Exception (try)
-import Control.Monad (forever)
+import Control.Monad (forM_, forever)
 import qualified Data.ByteString.Char8 as BS
 import qualified Data.List
 import Data.String (fromString)
@@ -20,6 +20,8 @@ import Network.Wai
   , responseLBS
   )
 import Network.Wai.Handler.Warp (run)
+import System.FSNotify
+import qualified System.Posix.Signals -- unix
 
 type BuildResult = Either ShakeException ()
 
@@ -27,10 +29,62 @@ type BuildHandler = [String] -> IO BuildResult
 
 type Builder = TVar (TQueue String, TChan BuildResult)
 
+-- Abstract these so that they can be used to generate both file watching rules
+-- and build rules.
+data BuildRule = BuildRule
+  { sourceDir :: FilePath
+  , target :: FilePath
+  , rule :: BuildRule -> Development.Shake.Action ()
+  }
+
+buildRules =
+  [ BuildRule "src/js" "pkg/app.js" $ \rule -> do
+      files <- getDirectoryFiles "" [sourceDir rule </> "*.js"]
+      need files
+      -- TODO: Babel is kind of slow, taking > 500ms for simple concat :(
+      -- Want to blame NPM
+      cmd_ "babel" files "-o" (target rule)
+  , BuildRule "src/elm" "pkg/elm.js" $ \rule -> do
+      let src = sourceDir rule </> "Main.elm"
+      need [src]
+      cmd_ "elm make" ("--output=" <> target rule) src
+  , BuildRule "src/html" "pkg/index.html" $ \rule -> do
+      let src = sourceDir rule </> "index.html"
+      need [src]
+      cmd_ "cp" src (target rule)
+  ]
+
 main :: IO ()
 main = do
   builder <- forkBuilder buildHandler
   -- TODO: Add some logging middleware
+  -- As an optimization, trigger builds on file change. A subsequent web
+  -- request will trigger a rebuild, but there should be no changes so it will
+  -- be fast.
+  watcherId <-
+    forkIO . System.FSNotify.withManagerConf defaultConfig $ \mgr -> do
+      forM_ buildRules $ \buildRule -> do
+        watchTree
+          mgr
+          (sourceDir buildRule)
+          -- Some editors (e.g. vim) don't write files directly so generate weird
+          -- events. This check appears to sufficiently limit us to one event per
+          -- change, though that event type may be weird (e.g. `Removed` on file
+          -- save).
+          (hasExtension . eventPath)
+          -- We don't actually need to wait for the result here, but it's fine if
+          -- we do - just keeps an extra thread around.
+          (const $ requestBuild builder (target buildRule) >> pure ())
+      -- Block indefinitely
+      forever $ threadDelay 1000000
+  -- Ensure that threads are cleaned up when developing in GHCI. Kill thread is
+  -- dangerous, but it's (TODO) only for dev mode so don't care. In production,
+  -- threads will be killed by default when the process is killed.
+  tid <- myThreadId
+  System.Posix.Signals.installHandler
+    System.Posix.Signals.keyboardSignal
+    (System.Posix.Signals.Catch $ killThread watcherId >> killThread tid)
+    Nothing
   run 8001 (application builder)
 
 buildHandler :: BuildHandler
@@ -42,20 +96,8 @@ buildHandler paths = do
       phony "clean" $ do
         putNormal "Cleaning files in _build"
         removeFilesAfter "_build" ["//*"]
-      "pkg/elm.js" %> \out -> do
-        let src = "src/elm/Main.elm"
-        need [src]
-        cmd_ "elm make" ("--output=" <> out) src
-      "pkg/index.html" %> \out -> do
-        let src = "src/html/index.html"
-        need [src]
-        cmd_ "cp" src out
-      "pkg/app.js" %> \out -> do
-        files <- getDirectoryFiles "" ["src/js//*.js"]
-        need files
-        -- TODO: Babel is kind of slow, taking > 500ms for simple concat :(
-        -- Want to blame NPM
-        cmd_ "babel" files "-o pkg/app.js"
+      forM_ buildRules $ \buildRules -> do
+        (target buildRules) %> (const $ rule buildRules buildRules)
 
 application builder request respond = do
   let rawPath = BS.unpack $ rawPathInfo request
