@@ -47,6 +47,7 @@ buildRules =
   , BuildRule "src/elm" "pkg/elm.js" $ \rule -> do
       let src = sourceDir rule </> "Main.elm"
       need [src]
+      -- TODO: Allow for debug/release builds, optimize code for latter.
       cmd_ "elm make" ("--output=" <> target rule) src
   , BuildRule "src/html" "pkg/index.html" $ \rule -> do
       let src = sourceDir rule </> "index.html"
