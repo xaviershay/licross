@@ -36,9 +36,9 @@ library:
   source-dirs: src
 
 executables:
-  licross-exe:
+  licross-server:
     main:                Main.hs
-    source-dirs:         app
+    source-dirs:         app/service
     ghc-options:
     - -threaded
     - -rtsopts
