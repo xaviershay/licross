@@ -104,7 +104,7 @@ application builder request respond = do
   let pathWithDefault =
         if hasExtension rawPath
           then rawPath
-          else addTrailingPathSeparator rawPath </> "index.html"
+          else "/index.html"
   let path = "pkg" <> pathWithDefault
   result <- requestBuild builder path
   case result of

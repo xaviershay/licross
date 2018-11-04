@@ -13,7 +13,11 @@ text {
   font-weight: bold;
 }
 body {
-  background-color: #1a1a1a
+  background-color: #1a1a1a;
+  color: white;
+}
+a {
+  color: white;
 }
 .board {
   display: flex;
@@ -46,6 +50,7 @@ rect {
 
         container.append('svg')
           .call(responsify)
+
         d3.json("http://localhost:8080/example").then(function (response) {
           boardData = []
           tileData = []
@@ -70,7 +75,16 @@ rect {
           console.log(tileData)
           redraw(boardData)
         })
+      }
 
+      get gameId() {
+        console.log("get game id")
+        return this._gameId;
+      }
+
+      set gameId(id) {
+        console.log("set game id", id)
+        this._gameId = id
       }
     })
     var app = Elm.Main.init({
