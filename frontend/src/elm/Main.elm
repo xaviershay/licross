@@ -2,13 +2,16 @@ module Main exposing (main)
 
 import Browser
 import Browser.Navigation
-import Html exposing (Html, a, div, h1, text)
+import Html exposing (Html, a, button, div, h1, li, text, ul)
 import Html.Attributes exposing (href)
-import Html.Events
+import Html.Events exposing (onClick)
+import Http
 import Json.Decode
 import Json.Encode
+import Model exposing (..)
+import Route exposing (..)
 import Url
-import Url.Parser
+import Url.Builder
 
 
 main =
@@ -22,20 +25,6 @@ main =
         }
 
 
-type Route
-    = Home
-    | Example
-    | NotFound
-
-
-routeParser : Url.Parser.Parser (Route -> a) a
-routeParser =
-    Url.Parser.oneOf
-        [ Url.Parser.map Home Url.Parser.top
-        , Url.Parser.map Example (Url.Parser.s "example")
-        ]
-
-
 type alias Model =
     { key : Browser.Navigation.Key
     , route : Route
@@ -47,7 +36,7 @@ init flags url key =
     -- TODO Parse URL here
     let
         route =
-            Maybe.withDefault NotFound (Url.Parser.parse routeParser url)
+            parseRoute url
     in
     ( Model key route, Cmd.none )
 
@@ -55,13 +44,28 @@ init flags url key =
 type Msg
     = Noop
     | MoveSubmit String
+    | GameCreate
+    | GameCreated (Result Http.Error GameId)
     | UrlChanged Url.Url
     | LinkClicked Browser.UrlRequest
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
+    let
+        _ =
+            Debug.log (Debug.toString msg) msg
+    in
     case msg of
+        GameCreate ->
+            ( model, Http.send GameCreated (Http.post (Url.Builder.crossOrigin "http://localhost:8080" [ "game" ] []) Http.emptyBody gameIdDecoder) )
+
+        GameCreated (Result.Ok gameId) ->
+            ( model, Browser.Navigation.pushUrl model.key (urlFor (Game gameId)) )
+
+        GameCreated (Result.Err _) ->
+            ( model, Cmd.none )
+
         LinkClicked urlRequest ->
             case urlRequest of
                 Browser.Internal url ->
@@ -71,9 +75,12 @@ update msg model =
                     ( model, Browser.Navigation.load href )
 
         UrlChanged url ->
-            ( { model | route = Maybe.withDefault NotFound (Url.Parser.parse routeParser url) }, Cmd.none )
+            ( { model | route = parseRoute url }, Cmd.none )
 
-        _ ->
+        MoveSubmit _ ->
+            ( model, Cmd.none )
+
+        Noop ->
             ( model, Cmd.none )
 
 
@@ -84,7 +91,7 @@ view model =
             { title = "Licross"
             , body =
                 [ h1 [] [ text "Licross" ]
-                , text "The requeste page does not exist"
+                , text "The requested page does not exist"
                 ]
             }
 
@@ -92,7 +99,26 @@ view model =
             { title = "Licross"
             , body =
                 [ h1 [] [ text "Licross" ]
-                , a [ href "example" ] [ text "View example board" ]
+                , ul []
+                    [ li [] [ a [ href (urlFor Example) ] [ text "View example board" ] ]
+                    , li [] [ a [ href (urlFor NewGame) ] [ text "New game" ] ]
+                    ]
+                ]
+            }
+
+        NewGame ->
+            { title = "New Game - Licross"
+            , body =
+                [ h1 [] [ text "Licross" ]
+                , button [ onClick GameCreate ] [ text "Create Game" ]
+                ]
+            }
+
+        Game id ->
+            { title = "Playing Game - Licross"
+            , body =
+                [ h1 [] [ text "Licross" ]
+                , text (gameIdToString id)
                 ]
             }
 

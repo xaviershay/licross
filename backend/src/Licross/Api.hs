@@ -41,7 +41,7 @@ joinGame :: GameId -> Handler PlayerId
 joinGame = error ""
 
 newGame :: Handler GameId
-newGame = error ""
+newGame = GameId <$> pure 4
 
 postMove :: GameId -> PlayerId -> Move -> Handler ()
 postMove = error ""
