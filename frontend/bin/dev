@@ -2,5 +2,6 @@
 
 set ex
 
-cd public
-exec browser-sync start --server --files "*"
+stack build
+stack exec shake-build
+
