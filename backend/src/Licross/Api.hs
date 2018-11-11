@@ -6,6 +6,8 @@ module Licross.Api
   ( runServer
   ) where
 
+import Control.Concurrent.STM (TVar, atomically, newTVar) -- stm
+import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
 import qualified Data.HashMap.Strict as M -- unordered-containers
 import Network.Wai -- wai
@@ -13,6 +15,7 @@ import Network.Wai.Handler.Warp -- warp
 import Network.Wai.Middleware.Cors -- wai-cors
 import Network.Wai.Middleware.RequestLogger -- wai-extra
 import Servant -- servant-server
+import Servant.RawM (RawM)
 
 import Licross.FakeData
 import Licross.Json
@@ -33,34 +36,43 @@ type GameAPI
      :<|> "game" :> Post '[ JSON] GameId
      :<|> "game" :> Capture "id" GameId :> "join" :> Post '[ JSON] PlayerId
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
-     :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> Raw
+     :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> RawM
 
-example :: Servant.Handler RedactedGame
+data State = State
+  { games :: TVar (M.HashMap GameId Game)
+  }
+
+type AppM = ReaderT State Servant.Handler
+
+example :: AppM RedactedGame
 example = return $ RedactedGame Nothing titleGame
 
-joinGame :: GameId -> Handler PlayerId
+joinGame :: GameId -> AppM PlayerId
 joinGame = error ""
 
-newGame :: Handler GameId
+newGame :: AppM GameId
 newGame = liftIO newGameId
 
-postMove :: GameId -> PlayerId -> Move -> Handler ()
+postMove :: GameId -> PlayerId -> Move -> AppM ()
 postMove = error ""
 
-subscribeGame :: GameId -> PlayerId -> Server Raw
+subscribeGame :: GameId -> PlayerId -> AppM Application
 subscribeGame = error ""
 
-server :: Servant.Server GameAPI
+server :: Servant.ServerT GameAPI AppM
 server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
 
 gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy
 
-app :: Network.Wai.Application
-app =
+nt :: State -> AppM a -> Handler a
+nt s x = runReaderT x s
+
+app :: State -> Network.Wai.Application
+app s =
   Network.Wai.Middleware.RequestLogger.logStdoutDev $
   Network.Wai.Middleware.Cors.cors (const . Just $ corsPolicy) $
-  Servant.serve gameAPI server
+  Servant.serve gameAPI (hoistServer gameAPI (nt s) server)
   where
     corsPolicy =
       Network.Wai.Middleware.Cors.simpleCorsResourcePolicy
@@ -69,4 +81,7 @@ app =
         }
 
 runServer :: Int -> IO ()
-runServer port = Network.Wai.Handler.Warp.run port app
+runServer port = do
+  tvar <- atomically $ newTVar mempty
+  let initialState = State tvar
+  Network.Wai.Handler.Warp.run port (app initialState)

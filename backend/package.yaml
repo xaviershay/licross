@@ -27,6 +27,8 @@ dependencies:
 - mtl
 - random
 - servant-server
+- servant-rawm
+- stm
 - text
 - unordered-containers
 - wai

@@ -136,6 +136,8 @@ newtype GameId =
   GameId T.Text
   deriving (Show, Eq, Generic)
 
+instance Hashable GameId
+
 newGameId :: IO GameId
 newGameId = GameId <$> randomId 25
 
