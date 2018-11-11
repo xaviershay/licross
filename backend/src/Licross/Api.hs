@@ -6,10 +6,12 @@ module Licross.Api
   ( runServer
   ) where
 
-import Control.Concurrent.STM (TVar, atomically, newTVar) -- stm
+import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar) -- stm
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
+import qualified Data.Aeson
 import qualified Data.HashMap.Strict as M -- unordered-containers
+import Network.HTTP.Types (status200, status404) -- http-types
 import Network.Wai -- wai
 import Network.Wai.Handler.Warp -- warp
 import Network.Wai.Middleware.Cors -- wai-cors
@@ -38,7 +40,7 @@ type GameAPI
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> RawM
 
-data State = State
+newtype State = State
   { games :: TVar (M.HashMap GameId Game)
   }
 
@@ -51,13 +53,30 @@ joinGame :: GameId -> AppM PlayerId
 joinGame = error ""
 
 newGame :: AppM GameId
-newGame = liftIO newGameId
+newGame = do
+  State {games = gs} <- ask
+  liftIO $ do
+    id <- newGameId
+    atomically $ modifyTVar gs (M.insert id emptyGame)
+    return id
 
 postMove :: GameId -> PlayerId -> Move -> AppM ()
 postMove = error ""
 
 subscribeGame :: GameId -> PlayerId -> AppM Application
-subscribeGame = error ""
+subscribeGame gid pid = do
+  State {games = gs} <- ask
+  liftIO $ do
+    maybeGame <- atomically $ readTVar gs >>= (return . M.lookup gid)
+    return $ \_ respond ->
+      respond $
+      case maybeGame of
+        Nothing -> responseLBS status404 [] ""
+        Just game ->
+          responseLBS
+            status200
+            [("Content-Type", "application/json")]
+            (Data.Aeson.encode $ RedactedGame (Just pid) game)
 
 server :: Servant.ServerT GameAPI AppM
 server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame

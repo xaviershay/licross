@@ -51,4 +51,3 @@ instance ToJSON GameId
 instance FromJSON Move where
   parseJSON = withObject "Move" $ \v -> do
     pure (PlayTiles (PlayerId 0) mempty)
-  
