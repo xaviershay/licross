@@ -6,13 +6,16 @@ module Licross.Api
   ( runServer
   ) where
 
+import qualified Control.Concurrent
 import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar) -- stm
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
 import qualified Data.Aeson
+import qualified Data.Binary.Builder
 import qualified Data.HashMap.Strict as M -- unordered-containers
 import Network.HTTP.Types (status200, status404) -- http-types
 import Network.Wai -- wai
+import qualified Network.Wai.EventSource -- wai-extra
 import Network.Wai.Handler.Warp -- warp
 import Network.Wai.Middleware.Cors -- wai-cors
 import Network.Wai.Middleware.RequestLogger -- wai-extra
@@ -68,15 +71,20 @@ subscribeGame gid pid = do
   State {games = gs} <- ask
   liftIO $ do
     maybeGame <- atomically $ readTVar gs >>= (return . M.lookup gid)
-    return $ \_ respond ->
-      respond $
+    let game = emptyGame
+    return $
       case maybeGame of
-        Nothing -> responseLBS status404 [] ""
+        Nothing -> \_ respond -> respond $ responseLBS status404 [] ""
         Just game ->
-          responseLBS
-            status200
-            [("Content-Type", "application/json")]
-            (Data.Aeson.encode $ RedactedGame (Just pid) game)
+          Network.Wai.EventSource.eventSourceAppIO $ do
+            Control.Concurrent.threadDelay 1000000
+            return $
+              Network.Wai.EventSource.ServerEvent
+                (Just "snapshot")
+                Nothing
+                [ Data.Binary.Builder.fromLazyByteString
+                    (Data.Aeson.encode $ RedactedGame Nothing game)
+                ]
 
 server :: Servant.ServerT GameAPI AppM
 server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
