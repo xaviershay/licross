@@ -24,6 +24,8 @@ dependencies:
 - aeson
 - hashable
 - lens
+- mtl
+- random
 - servant-server
 - text
 - unordered-containers
@@ -31,6 +33,7 @@ dependencies:
 - wai-cors
 - wai-extra
 - warp
+- vector
 
 library:
   source-dirs: src

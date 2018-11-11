@@ -53,6 +53,7 @@ import qualified Control.Lens
 -- licross
 import Licross.Prelude
 
+
 data Position = Position
   { yPos :: Integer
   , xPos :: Integer
@@ -136,7 +137,7 @@ newtype GameId =
   deriving (Show, Eq, Generic)
 
 newGameId :: IO GameId
-newGameId = return $ GameId "abc"
+newGameId = GameId <$> randomId 25
 
 gameIdFromText :: T.Text -> Maybe GameId
 gameIdFromText = pure . GameId

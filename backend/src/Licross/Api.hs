@@ -6,7 +6,7 @@ module Licross.Api
   ( runServer
   ) where
 
-import Control.Monad.Trans (liftIO) -- mtl usually, but ??
+import Control.Monad.Trans (liftIO) -- mtl
 import qualified Data.HashMap.Strict as M -- unordered-containers
 import Network.Wai -- wai
 import Network.Wai.Handler.Warp -- warp
