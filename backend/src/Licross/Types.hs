@@ -12,8 +12,11 @@ module Licross.Types
   , Bonus(..)
   , RedactedGame(..)
   , Space
-  , GameId(..)
+  , GameId
   -- Constructors
+  , newGameId
+  , gameIdFromText
+  , gameIdToText
   , mkPos
   , mkPlacedTile
   , emptySpace
@@ -124,16 +127,28 @@ data Game = Game
 
 -- A redacted type if effectively a newtype that allows for different JSON
 -- representations of an object to be shown to different players/observers.
-data RedactedGame = RedactedGame (Maybe PlayerId) Game
+data RedactedGame =
+  RedactedGame (Maybe PlayerId)
+               Game
 
-newtype GameId = GameId Int deriving (Show, Eq, Generic)
+newtype GameId =
+  GameId T.Text
+  deriving (Show, Eq, Generic)
+
+newGameId :: IO GameId
+newGameId = return $ GameId "abc"
+
+gameIdFromText :: T.Text -> Maybe GameId
+gameIdFromText = pure . GameId
+
+gameIdToText :: GameId -> T.Text
+gameIdToText (GameId x) = x
 
 gameBoard :: Control.Lens.Lens' Game Board
 gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
 
 gameBag :: Control.Lens.Lens' Game [Tile]
-gameBag f parent =
-  fmap (\x -> parent {_gameBag = x}) (f (_gameBag parent))
+gameBag f parent = fmap (\x -> parent {_gameBag = x}) (f (_gameBag parent))
 
 gamePlayers :: Control.Lens.Lens' Game [Player]
 gamePlayers f parent =

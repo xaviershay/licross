@@ -4,12 +4,12 @@ import Json.Decode
 
 
 type GameId
-    = GameId Int
+    = GameId String
 
 
 gameIdToString (GameId id) =
-    String.fromInt id
+    id
 
 
 gameIdDecoder =
-    Json.Decode.map GameId Json.Decode.int
+    Json.Decode.map GameId Json.Decode.string

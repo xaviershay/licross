@@ -6,6 +6,7 @@ module Licross.Api
   ( runServer
   ) where
 
+import Control.Monad.Trans (liftIO) -- mtl usually, but ??
 import qualified Data.HashMap.Strict as M -- unordered-containers
 import Network.Wai -- wai
 import Network.Wai.Handler.Warp -- warp
@@ -19,7 +20,7 @@ import Licross.Prelude
 import Licross.Types
 
 instance Servant.FromHttpApiData GameId where
-  parseUrlPiece x = parseUrlPiece x >>= return . GameId
+  parseUrlPiece x = parseUrlPiece x >>= note "Invalid Game ID" . gameIdFromText
 
 instance Servant.FromHttpApiData PlayerId where
   parseUrlPiece x = parseUrlPiece x >>= return . PlayerId
@@ -41,7 +42,7 @@ joinGame :: GameId -> Handler PlayerId
 joinGame = error ""
 
 newGame :: Handler GameId
-newGame = GameId <$> pure 4
+newGame = liftIO newGameId
 
 postMove :: GameId -> PlayerId -> Move -> Handler ()
 postMove = error ""

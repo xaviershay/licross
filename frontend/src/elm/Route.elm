@@ -45,5 +45,5 @@ routeParser =
         [ map Home top
         , map Example (s "example")
         , map NewGame (s "game" </> s "new")
-        , map Game (s "game" </> map GameId int)
+        , map Game (s "game" </> map GameId string)
         ]
