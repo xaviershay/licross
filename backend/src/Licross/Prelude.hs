@@ -3,6 +3,8 @@ module Licross.Prelude
   , module Data.Function
   , module Data.Ord
   , module Data.List
+  , note
+  , shush
   ) where
 
 -- lens
@@ -22,3 +24,9 @@ import Control.Lens
 import Data.Function (on)
 import Data.Ord (comparing)
 import Data.List (sortBy, groupBy)
+
+note :: e -> Maybe a -> Either e a
+note e = maybe (Left e) Right
+
+shush :: Either e a -> Maybe a
+shush = either (const Nothing) Just
