@@ -9,7 +9,6 @@ const BONUS_COLORS = {
   "letter": "#d59120"
 }
 
-
 let boardData = []
 let tileData = []
 
@@ -71,7 +70,6 @@ function redraw(boardData) {
     .attr("alignment-baseline", "middle")
     .html(d => d.bonus == "anchor" ? "☪" : d.bonus.toUpperCase())
 
-  console.log(tileData)
   update(tileData)
 }
 

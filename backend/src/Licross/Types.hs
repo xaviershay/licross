@@ -124,7 +124,7 @@ data Game = Game
   { _gameBoard :: Board
   , _gameBag :: [Tile]
   , _gamePlayers :: [Player]
-  }
+  } deriving (Show)
 
 -- A redacted type if effectively a newtype that allows for different JSON
 -- representations of an object to be shown to different players/observers.

@@ -1,4 +1,4 @@
-module Route exposing (Route(..), parseRoute, urlFor)
+module Route exposing (Route(..), parseRoute, subscriptionUrlFor, urlFor)
 
 import Model exposing (..)
 import Url
@@ -17,6 +17,11 @@ type Route
 parseRoute : Url.Url -> Route
 parseRoute url =
     Maybe.withDefault NotFound (parse routeParser url)
+
+
+subscriptionUrlFor : GameId -> String
+subscriptionUrlFor id =
+    Url.Builder.absolute [ "game", gameIdToString id, "player", "123", "subscribe" ] []
 
 
 urlFor : Route -> String

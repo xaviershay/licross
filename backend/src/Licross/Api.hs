@@ -77,14 +77,15 @@ subscribeGame gid pid = do
         Nothing -> \_ respond -> respond $ responseLBS status404 [] ""
         Just game ->
           Network.Wai.EventSource.eventSourceAppIO $ do
+            let x =
+                  Network.Wai.EventSource.ServerEvent
+                    (Just "snapshot")
+                    Nothing
+                    [ Data.Binary.Builder.fromLazyByteString
+                        (Data.Aeson.encode $ RedactedGame Nothing game)
+                    ]
             Control.Concurrent.threadDelay 1000000
-            return $
-              Network.Wai.EventSource.ServerEvent
-                (Just "snapshot")
-                Nothing
-                [ Data.Binary.Builder.fromLazyByteString
-                    (Data.Aeson.encode $ RedactedGame Nothing game)
-                ]
+            return x
 
 server :: Servant.ServerT GameAPI AppM
 server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
