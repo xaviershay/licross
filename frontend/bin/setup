@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set ex
+
+# From https://gist.github.com/evancz/442b56717b528f913d1717f2342a295d
+wget "https://github.com/elm/compiler/releases/download/0.19.0/binaries-for-linux.tar.gz"
+tar xzf binaries-for-linux.tar.gz
+mv elm /usr/local/bin/
+rm binaries-for-linux.tar.gz
+
+npm install -g @babel/core @babel/cli

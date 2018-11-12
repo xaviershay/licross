@@ -18,6 +18,7 @@ Not a real thing.
 
     # Second terminal
     cd frontend/
+    bin/setup # One time setup for dependencies
     bin/dev
 
 ### Style Guide
