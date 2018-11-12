@@ -40,15 +40,14 @@ data BuildRule = BuildRule
 buildRules =
   [ BuildRule "src/js" "pkg/app.js" $ \rule -> do
       files <- getDirectoryFiles "" [sourceDir rule </> "*.js"]
+      need files
       -- TODO: Babel is kind of slow, taking > 500ms for simple concat :(
       -- Want to blame NPM
       cmd_ "babel" files "-o" (target rule)
   , BuildRule "src/elm" "pkg/elm.js" $ \rule -> do
       let src = sourceDir rule </> "Main.elm"
-      -- Introduce a dependency on all elm files changing, don't need to store
-      -- them though because `elm make` will find them per "source-directories"
-      -- configuration in elm.json.
-      _ <- getDirectoryFiles "" [sourceDir rule </> "*.elm"]
+      files <- getDirectoryFiles "" [sourceDir rule </> "*.elm"]
+      need files
       -- TODO: Allow for debug/release builds, optimize code for latter.
       cmd_ "elm make" ("--output=" <> target rule) src
   , BuildRule "src/html" "pkg/index.html" $ \rule -> do
