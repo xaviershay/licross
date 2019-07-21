@@ -9,7 +9,7 @@ module Licross.Api
 import Debug.Trace
 
 import qualified Control.Concurrent
-import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar) -- stm
+import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar, check) -- stm
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
 import qualified Data.Aeson
@@ -71,6 +71,7 @@ newGame = do
 postMove :: GameId -> PlayerId -> Move -> AppM ()
 postMove = error ""
 
+-- SSE version
 subscribeGame :: GameId -> PlayerId -> AppM Application
 subscribeGame gid pid = do
   State {games = gs} <- ask
@@ -92,29 +93,42 @@ subscribeGame gid pid = do
             Control.Concurrent.threadDelay 1000000
             return x
 
+-- Websocket version
 subscribeGame2 :: GameId -> PlayerId -> AppM Application
 subscribeGame2 gid pid = do
   State {games = gs} <- ask
-  liftIO $ do
-    maybeGame <- atomically $ readTVar gs >>= (return . M.lookup gid)
-    let game = emptyGame
-    return $
-      case maybeGame of
-        Nothing -> \_ respond -> respond $ responseLBS status404 [] ""
-        Just game ->
-          Network.Wai.Handler.WebSockets.websocketsOr
-            Network.WebSockets.Connection.defaultConnectionOptions
-            (wsApp game)
-            backupApp
+
+  return $
+    Network.Wai.Handler.WebSockets.websocketsOr
+      Network.WebSockets.Connection.defaultConnectionOptions
+      (wsApp gs)
+      backupApp
   where
-    wsApp game pendingConn = do
+    wsApp gs pendingConn = do
       conn <- Network.WebSockets.Connection.acceptRequest pendingConn
-      Network.WebSockets.Connection.sendTextData
-        conn
-        (Data.Aeson.encode $ RedactedGame Nothing game)
-      Network.WebSockets.Connection.sendTextData
-        conn
-      Control.Concurrent.threadDelay 1000000
+
+      handle gs conn 0
+
+    handle gs conn lastVersion = do
+      let action = atomically $ do
+                     x <- readTVar gs
+
+                     case M.lookup gid x of
+                       Nothing -> return Nothing
+                       Just game -> do
+                         check $ view gameVersion game > lastVersion
+                         return $ Just game
+
+      maybeGame <- action
+
+      case maybeGame of
+        Nothing -> return () -- Terminate connection
+        Just game -> do
+           Network.WebSockets.Connection.sendTextData
+             conn
+             ((Data.Aeson.encode $ RedactedGame Nothing game) <> "\n")
+
+           handle gs conn (view gameVersion game)
 
     backupApp _ respond = respond $ responseLBS status400 [] "Not a WebSocket request"
 
