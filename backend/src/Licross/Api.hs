@@ -61,6 +61,7 @@ instance Servant.FromHttpApiData PlayerId where
 type GameAPI
    = "example" :> Get '[ JSON] RedactedGame
      :<|> "graphql" :> ReqBody '[JSON] GraphQLBody :> Post '[JSON] GraphQLResponse
+     :<|> "graphqlSubscribe" :> RawM
      :<|> "game" :> Post '[ JSON] GameId
      :<|> "game" :> Capture "id" GameId :> "join" :> Post '[ JSON] PlayerId
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
@@ -89,6 +90,52 @@ instance ToJSON GraphQLResponse where
 
 graphqlHandler :: GraphQLBody -> AppM GraphQLResponse
 graphqlHandler (GraphQLBody ast) = trace (show ast) $ return RatesResponse
+
+graphqlSubscribe :: AppM Application
+graphqlSubscribe  = do
+  State {games = gs} <- ask
+
+  return $
+    Network.Wai.Handler.WebSockets.websocketsOr
+      Network.WebSockets.Connection.defaultConnectionOptions
+      (wsApp gs)
+      backupApp
+  where
+    wsApp gs pendingConn = do
+      conn <- Network.WebSockets.Connection.acceptRequest pendingConn
+      msg <- receive conn
+      traceM . show $ msg
+      msg <- receive conn
+      traceM . show $ msg
+      msg <- receive conn
+      traceM . show $ msg
+      msg <- receive conn
+      traceM . show $ msg
+
+      return ()
+
+    --handle gs conn lastVersion = do
+    --  let action = atomically $ do
+    --                 x <- readTVar gs
+
+    --                 case M.lookup gid x of
+    --                   Nothing -> return Nothing
+    --                   Just game -> do
+    --                     check $ view gameVersion game > lastVersion
+    --                     return $ Just game
+
+    --  maybeGame <- action
+
+    --  case maybeGame of
+    --    Nothing -> return () -- Terminate connection
+    --    Just game -> do
+    --       Network.WebSockets.Connection.sendTextData
+    --         conn
+    --         ((Data.Aeson.encode $ RedactedGame Nothing game) <> "\n")
+
+    --       handle gs conn (view gameVersion game)
+
+    backupApp _ respond = respond $ responseLBS status400 [] "Not a WebSocket request"
 
 joinGame :: GameId -> AppM PlayerId
 joinGame = error ""
@@ -166,7 +213,7 @@ subscribeGame2 gid pid = do
     backupApp _ respond = respond $ responseLBS status400 [] "Not a WebSocket request"
 
 server :: Servant.ServerT GameAPI AppM
-server = example :<|> graphqlHandler :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame2
+server = example :<|> graphqlHandler :<|> graphqlSubscribe :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame2
 
 gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy
