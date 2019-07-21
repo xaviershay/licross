@@ -36,6 +36,8 @@ dependencies:
 - wai
 - wai-cors
 - wai-extra
+- wai-websockets
+- websockets
 - warp
 - vector
 

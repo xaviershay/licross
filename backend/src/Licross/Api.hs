@@ -6,6 +6,8 @@ module Licross.Api
   ( runServer
   ) where
 
+import Debug.Trace
+
 import qualified Control.Concurrent
 import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar) -- stm
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
@@ -13,12 +15,15 @@ import Control.Monad.Trans (liftIO) -- mtl
 import qualified Data.Aeson
 import qualified Data.Binary.Builder
 import qualified Data.HashMap.Strict as M -- unordered-containers
-import Network.HTTP.Types (status200, status404) -- http-types
+import qualified Data.Text;
+import Network.HTTP.Types (status200, status400, status404) -- http-types
 import Network.Wai -- wai
 import qualified Network.Wai.EventSource -- wai-extra
 import Network.Wai.Handler.Warp -- warp
 import Network.Wai.Middleware.Cors -- wai-cors
 import Network.Wai.Middleware.RequestLogger -- wai-extra
+import Network.Wai.Handler.WebSockets -- wai-websockets
+import Network.WebSockets.Connection -- websockets
 import Servant -- servant-server
 import Servant.RawM (RawM)
 
@@ -87,8 +92,34 @@ subscribeGame gid pid = do
             Control.Concurrent.threadDelay 1000000
             return x
 
+subscribeGame2 :: GameId -> PlayerId -> AppM Application
+subscribeGame2 gid pid = do
+  State {games = gs} <- ask
+  liftIO $ do
+    maybeGame <- atomically $ readTVar gs >>= (return . M.lookup gid)
+    let game = emptyGame
+    return $
+      case maybeGame of
+        Nothing -> \_ respond -> respond $ responseLBS status404 [] ""
+        Just game ->
+          Network.Wai.Handler.WebSockets.websocketsOr
+            Network.WebSockets.Connection.defaultConnectionOptions
+            (wsApp game)
+            backupApp
+  where
+    wsApp game pendingConn = do
+      conn <- Network.WebSockets.Connection.acceptRequest pendingConn
+      Network.WebSockets.Connection.sendTextData
+        conn
+        (Data.Aeson.encode $ RedactedGame Nothing game)
+      Network.WebSockets.Connection.sendTextData
+        conn
+      Control.Concurrent.threadDelay 1000000
+
+    backupApp _ respond = respond $ responseLBS status400 [] "Not a WebSocket request"
+
 server :: Servant.ServerT GameAPI AppM
-server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
+server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame2
 
 gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy
@@ -99,7 +130,7 @@ nt s x = runReaderT x s
 app :: State -> Network.Wai.Application
 app s =
   Network.Wai.Middleware.RequestLogger.logStdoutDev $
-  Network.Wai.Middleware.Cors.cors (const . Just $ corsPolicy) $
+  --Network.Wai.Middleware.Cors.cors (const . Just $ corsPolicy) $
   Servant.serve gameAPI (hoistServer gameAPI (nt s) server)
   where
     corsPolicy =
@@ -110,6 +141,8 @@ app s =
 
 runServer :: Int -> IO ()
 runServer port = do
-  tvar <- atomically $ newTVar mempty
+  let id = GameId "1"
+  putStrLn . show $ id
+  tvar <- atomically $ newTVar (M.insert id emptyGame mempty) -- mempty
   let initialState = State tvar
   Network.Wai.Handler.Warp.run port (app initialState)

@@ -12,7 +12,7 @@ module Licross.Types
   , Bonus(..)
   , RedactedGame(..)
   , Space
-  , GameId
+  , GameId(..)
   -- Constructors
   , newGameId
   , gameIdFromText
