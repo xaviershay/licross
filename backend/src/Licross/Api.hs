@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveGeneric #-}
 
 module Licross.Api
   ( runServer
@@ -8,6 +9,7 @@ module Licross.Api
 
 import Debug.Trace
 
+import GHC.Generics
 import qualified Control.Concurrent
 import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar, check) -- stm
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
@@ -32,6 +34,21 @@ import Licross.Json
 import Licross.Prelude
 import Licross.Types
 
+import Data.Aeson
+import Data.Attoparsec.Text (parseOnly, endOfInput)
+import qualified Data.GraphQL.AST as AST
+import Data.GraphQL.Parser (document)
+
+newtype GraphQLBody = GraphQLBody AST.Document
+
+instance FromJSON GraphQLBody where
+  parseJSON = withObject "GraphQLBody" $ \v -> do
+    query <- v .: "query"
+
+    case parseOnly (document <* endOfInput) query of
+      Left err -> fail err
+      Right ast -> return $ GraphQLBody ast
+
 instance Servant.FromHttpApiData GameId where
   parseUrlPiece x = parseUrlPiece x >>= note "Invalid Game ID" . gameIdFromText
 
@@ -43,6 +60,7 @@ instance Servant.FromHttpApiData PlayerId where
 -- benefit.
 type GameAPI
    = "example" :> Get '[ JSON] RedactedGame
+     :<|> "graphql" :> ReqBody '[JSON] GraphQLBody :> Post '[JSON] GraphQLResponse
      :<|> "game" :> Post '[ JSON] GameId
      :<|> "game" :> Capture "id" GameId :> "join" :> Post '[ JSON] PlayerId
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
@@ -56,6 +74,21 @@ type AppM = ReaderT State Servant.Handler
 
 example :: AppM RedactedGame
 example = return $ RedactedGame Nothing titleGame
+
+data Rate = Rate { __typename :: Data.Text.Text, currency :: Data.Text.Text }
+  deriving (Generic)
+
+instance ToJSON Rate
+
+data GraphQLResponse = RatesResponse
+
+instance ToJSON GraphQLResponse where
+  toJSON RatesResponse = object
+    [ "data" .= object ["rates" .= [Rate "Rate" "USD"]]]
+
+
+graphqlHandler :: GraphQLBody -> AppM GraphQLResponse
+graphqlHandler (GraphQLBody ast) = trace (show ast) $ return RatesResponse
 
 joinGame :: GameId -> AppM PlayerId
 joinGame = error ""
@@ -133,7 +166,7 @@ subscribeGame2 gid pid = do
     backupApp _ respond = respond $ responseLBS status400 [] "Not a WebSocket request"
 
 server :: Servant.ServerT GameAPI AppM
-server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame2
+server = example :<|> graphqlHandler :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame2
 
 gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy

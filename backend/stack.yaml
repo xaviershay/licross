@@ -41,6 +41,7 @@ packages:
 # extra-deps: []
 extra-deps:
   - servant-rawm-0.3.0.0
+  - graphql-0.3@sha256:c83618c374cb00ee0b1f39639d64371a83abec3e7b697469c4e71768db14c676
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

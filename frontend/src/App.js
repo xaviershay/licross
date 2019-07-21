@@ -1,6 +1,23 @@
 import React from 'react';
 import logo from './logo.svg';
 import './App.css';
+import ApolloClient, {gql} from "apollo-boost";
+
+const client = new ApolloClient({
+  uri: "http://localhost:8080/graphql"
+});
+
+client
+  .query({
+    query: gql`
+      {
+        rates(currency: "USD") {
+          currency
+        }
+      }
+    `
+  })
+  .then(result => console.log(result));
 
 function App() {
   return (
