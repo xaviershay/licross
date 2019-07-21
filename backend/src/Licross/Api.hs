@@ -144,7 +144,7 @@ nt s x = runReaderT x s
 app :: State -> Network.Wai.Application
 app s =
   Network.Wai.Middleware.RequestLogger.logStdoutDev $
-  --Network.Wai.Middleware.Cors.cors (const . Just $ corsPolicy) $
+  Network.Wai.Middleware.Cors.cors (const . Just $ corsPolicy) $
   Servant.serve gameAPI (hoistServer gameAPI (nt s) server)
   where
     corsPolicy =
