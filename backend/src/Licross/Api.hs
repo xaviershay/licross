@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Licross.Api
   ( runServer
@@ -13,7 +14,8 @@ import GHC.Generics
 import qualified Control.Concurrent
 import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar, check) -- stm
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
-import Control.Monad.Trans (liftIO) -- mtl
+import Control.Monad.Trans (liftIO, MonadIO) -- mtl
+import Control.Monad
 import qualified Data.Aeson
 import qualified Data.Binary.Builder
 import qualified Data.HashMap.Strict as M -- unordered-containers
@@ -28,6 +30,7 @@ import Network.Wai.Handler.WebSockets -- wai-websockets
 import Network.WebSockets.Connection -- websockets
 import Servant -- servant-server
 import Servant.RawM (RawM)
+import Servant.API.WebSocket
 
 import Licross.FakeData
 import Licross.Json
@@ -40,6 +43,7 @@ import qualified Data.GraphQL.AST as AST
 import Data.GraphQL.Parser (document)
 
 newtype GraphQLBody = GraphQLBody AST.Document
+  deriving (Show)
 
 instance FromJSON GraphQLBody where
   parseJSON = withObject "GraphQLBody" $ \v -> do
@@ -61,7 +65,7 @@ instance Servant.FromHttpApiData PlayerId where
 type GameAPI
    = "example" :> Get '[ JSON] RedactedGame
      :<|> "graphql" :> ReqBody '[JSON] GraphQLBody :> Post '[JSON] GraphQLResponse
-     :<|> "graphqlSubscribe" :> RawM
+     :<|> "graphqlSubscribe" :> WebSocketPending
      :<|> "game" :> Post '[ JSON] GameId
      :<|> "game" :> Capture "id" GameId :> "join" :> Post '[ JSON] PlayerId
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
@@ -83,16 +87,81 @@ instance ToJSON Rate
 
 data GraphQLResponse = RatesResponse
 
+data WSResponse = WSRatesResponse | ACKResponse
+
 instance ToJSON GraphQLResponse where
   toJSON RatesResponse = object
     [ "data" .= object ["rates" .= [Rate "Rate" "USD"]]]
 
+instance ToJSON WSResponse where
+  toJSON ACKResponse = object
+    [ "type" .= ("connection_ack" :: Data.Text.Text)
+    ]
+  toJSON WSRatesResponse = object
+    [ "id" .= ("1" :: Data.Text.Text)
+    , "type" .= ("data" :: Data.Text.Text)
+    , "payload" .= RatesResponse
+    ]
+
+data GraphqlWsMessage =
+  GQLInit |
+  GQLStart GraphQLBody
+  deriving (Show)
+
+
+instance FromJSON GraphqlWsMessage where
+  parseJSON = withObject "GraphQLBody" $ \v -> do
+    t <- v .: "type"
+
+    case t of
+      ("connection_init" :: Data.Text.Text) -> return GQLInit
+      "start" -> do
+        p <- v .: "payload"
+        q <- p .: "query"
+
+        traceM . show $ (q :: Data.Text.Text)
+        case parseOnly (document <* endOfInput) q of
+          Left err -> fail err
+          Right ast -> return $ GQLStart (GraphQLBody ast)
+      _ -> error "nope"
+
+graphqlWs = streamData
+ where
+  streamData :: MonadIO m => PendingConnection -> m ()
+  streamData pc = do
+    c <- liftIO $ acceptRequestWith pc (defaultAcceptRequest { acceptSubprotocol = Just "graphql-ws" })
+    liftIO $ forkPingThread c 10
+    liftIO $ do
+      msg <- receiveData c
+
+      case Data.Aeson.decode msg of
+        Just GQLInit -> do
+          Network.WebSockets.Connection.sendTextData
+            c
+            ((Data.Aeson.encode $ ACKResponse))
+
+        Nothing -> return ()
+
+    liftIO $ do
+      msg <- receiveData c
+
+      case Data.Aeson.eitherDecode msg of
+        Right (GQLStart d) -> do
+          traceM . show $ d
+          return ()
+        Left x -> error x
+
+    liftIO . forM_ [1..] $ \i -> do
+      Network.WebSockets.Connection.sendTextData
+        c
+        ((Data.Aeson.encode $ WSRatesResponse))
+      Control.Concurrent.threadDelay 1000000
 
 graphqlHandler :: GraphQLBody -> AppM GraphQLResponse
 graphqlHandler (GraphQLBody ast) = trace (show ast) $ return RatesResponse
 
-graphqlSubscribe :: AppM Application
-graphqlSubscribe  = do
+graphqlSubscribe :: GraphQLBody -> AppM Application
+graphqlSubscribe body = do
   State {games = gs} <- ask
 
   return $
@@ -213,7 +282,7 @@ subscribeGame2 gid pid = do
     backupApp _ respond = respond $ responseLBS status400 [] "Not a WebSocket request"
 
 server :: Servant.ServerT GameAPI AppM
-server = example :<|> graphqlHandler :<|> graphqlSubscribe :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame2
+server = example :<|> graphqlHandler :<|> graphqlWs :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame2
 
 gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy

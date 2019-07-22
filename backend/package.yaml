@@ -32,6 +32,7 @@ dependencies:
 - random
 - servant-server
 - servant-rawm
+- servant-websockets
 - stm
 - text
 - unordered-containers
