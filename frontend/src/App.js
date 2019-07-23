@@ -155,6 +155,7 @@ class Board extends React.Component {
     let tilesEnter = tiles.enter()
       .append('g')
         .attr('class', 'tile')
+        .attr('cursor', 'grab')
         .call(d3.drag()
           .on("start", function(d) {
             //const current = d3.select(this).raise()
