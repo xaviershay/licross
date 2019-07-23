@@ -122,7 +122,6 @@ class Board extends React.Component {
   }
 
   updateBoard(container, tileData) {
-    console.log(tileData)
     let tiles = container.selectAll('.tile').data(tileData, d => d.id)
 
     const boardSize = tilesToPixels(gridWidth)
@@ -135,7 +134,6 @@ class Board extends React.Component {
     const containerColor = '#333'
     
     function tileLocation(loc) {
-      console.log(loc)
       switch (loc[0]) {
         case "board":
           return [tilesToPixels(loc[1][0]), tilesToPixels(loc[1][1])]
@@ -167,8 +165,6 @@ class Board extends React.Component {
             const y = d3.event.y + deltaY
 
             // TODO: Highlight cell being hovered over
-            // xPos = Math.floor(x / (tileSize + 1))
-            // yPos = Math.floor(y / (tileSize + 1))
             d3.select(this)
               .attr('transform', d => "translate(" + x + "," + y + ")")
           })
@@ -176,12 +172,13 @@ class Board extends React.Component {
             // If on board and placeable, put it there, otherwise back to the
             // rack.
             // TODO: Allow rack re-arranging
-            const x = d3.event.x;
-            const y = d3.event.y;
+            const x = d3.event.x + deltaX;
+            const y = d3.event.y + deltaY;
 
             if (x <= boardSize && y <= boardSize) {
-              const xPos = Math.floor(x / (tileSize + 1))
-              const yPos = Math.floor(y / (tileSize + 1))
+              const dropWidth = borderWidth + tileSize
+              const xPos = Math.floor((x + borderWidth/2)/ dropWidth + 0.5)
+              const yPos = Math.floor((y + borderWidth/2)/ dropWidth + 0.5)
 
               // If not, move tile to that space by updating data.
               if (xPos >= 0 && xPos < gridSize && yPos >= 0 && yPos < gridSize) {
