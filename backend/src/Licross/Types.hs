@@ -27,6 +27,7 @@ module Licross.Types
   , gameBoard
   , gamePlayers
   , gameBag
+  , gameVersion
   , showBoard
   -- accessors
   , xPos
@@ -124,6 +125,7 @@ data Game = Game
   { _gameBoard :: Board
   , _gameBag :: [Tile]
   , _gamePlayers :: [Player]
+  , _gameVersion :: Int
   } deriving (Show)
 
 -- A redacted type if effectively a newtype that allows for different JSON
@@ -156,6 +158,10 @@ gameBag f parent = fmap (\x -> parent {_gameBag = x}) (f (_gameBag parent))
 gamePlayers :: Control.Lens.Lens' Game [Player]
 gamePlayers f parent =
   fmap (\x -> parent {_gamePlayers = x}) (f (_gamePlayers parent))
+
+gameVersion :: Control.Lens.Lens' Game Int
+gameVersion f parent =
+  fmap (\x -> parent {_gameVersion = x}) (f (_gameVersion parent))
 
 showSpace :: Space -> T.Text
 showSpace space =
@@ -203,6 +209,7 @@ emptyGame =
           [(mkPos x y, Space None Nothing) | x <- [0 .. 14], y <- [0 .. 14]]
     , _gameBag = mempty
     , _gamePlayers = mempty
+    , _gameVersion = 0
     }
 
 mkPlacedTile letter score =

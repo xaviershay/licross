@@ -1,4 +1,5 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { BrowserRouter as Router, Route, Link } from "react-router-dom";
 import * as d3 from 'd3'
 
 import './App.css';
@@ -31,14 +32,11 @@ class Board extends React.Component {
   }
 
   componentDidMount() {
-    let version = 0;
-    let f = () => {
-      // TODO: Cancel this on unmount somehow
-      fetch(`${this.props.uri}?version=${version}&${(new Date()).getTime()}`)
-        .then(results => results.json())
-        .then(data => {
-          console.log("got data")
+    let inited = false;
 
+    const source = new EventSource(this.props.uri)
+    source.addEventListener("snapshot", (e) => {
+      const data = JSON.parse(e.data)
       let boardData = []
       let tileData = []
       let tileId = 0
@@ -60,13 +58,51 @@ class Board extends React.Component {
         boardData.push({ x, y, bonus})
       })
 
+      if (!inited) {
+        this.renderBoard(boardData, tileData)
+        inited = true
+      } else {
+        const node = this.node.current
+        this.updateBoard(d3.select(node).select('svg'), tileData)
+      }
+    })
+    // TODO: Fix /example (convert it to same subscribe interface)
+    /*
+    let f = () => {
+      // TODO: Cancel this on unmount somehow
+      fetch(`${this.props.uri}?version=${version}&${(new Date()).getTime()}`)
+        .then(results => results.json())
+        .then(data => {
+          let boardData = []
+          let tileData = []
+          let tileId = 0
+          data.board.forEach(space => {
+            if (space.letter) {
+              tileId += 1;
+              tileData.push(
+                {
+                  "id": tileId,
+                  "letter": space.letter,
+                  "score": space.score,
+                  "location": ["board", [space.x, space.y]], "moveable": false
+                }
+              )
+            }
+
+            const {x, y, bonus} = space;
+
+            boardData.push({ x, y, bonus})
+          })
+
           this.renderBoard(boardData, tileData)
           version = data.version;
           //f();
         })
+        .catch(e => console.log(e))
     }
 
     f()
+    */
   }
 
   renderBoard(boardData, tileData) {
@@ -132,7 +168,7 @@ class Board extends React.Component {
     const containerWidth = boardSize + borderWidth
     //const containerHeight = boardSize + gutter + rackHeight
     const containerColor = '#333'
-    
+
     function tileLocation(loc) {
       switch (loc[0]) {
         case "board":
@@ -248,11 +284,65 @@ class Board extends React.Component {
   }
 }
 
+function Example() {
+  return <Board uri="http://localhost:8080/example" />
+}
+
+function Home() {
+  return <h1>Licross</h1>
+}
+
+function NewGame() {
+  const [loading, setLoading] = useState(false);
+  const clickHandler = async () => {
+    setLoading(true)
+
+    const uri = "http://localhost:8080/game"
+    try {
+      const response = await fetch(uri, {
+        method: 'POST',
+        body: JSON.stringify({}),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const gameId = await response.json()
+      console.log(gameId)
+      window.location = `/game/${gameId}`
+    } catch(e) {
+      alert(e) // TODO
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return <button onClick={clickHandler} disabled={loading}>Make New Game</button>
+}
+
+function Game({match}) {
+  const gameId = match.params.id
+  const playerId = "1234"
+
+  return <div>
+    <span>{gameId}</span>
+    <Board uri={`http://localhost:8080/game/${gameId}/player/${playerId}/subscribe`} />
+  </div>
+}
+
 function App() {
   return (
-    <div className="App">
-      <Board uri="http://localhost:8080/example" />
-    </div>
+    <Router>
+      <ul>
+        <li><Link to="/">Home</Link></li>
+        <li><Link to="/game/new">New Game</Link></li>
+        <li><Link to="/example">Example</Link></li>
+      </ul>
+      <Route path="/" exact component={Home} />
+      <Route path="/game/new" exact component={NewGame} />
+      <Route path="/game/:id" exact component={Game} />
+      <Route path="/example" component={Example} />
+    </Router>
   );
 }
 
