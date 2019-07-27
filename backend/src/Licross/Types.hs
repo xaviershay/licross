@@ -1,4 +1,6 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE DerivingVia #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Licross.Types
@@ -13,6 +15,9 @@ module Licross.Types
   , RedactedGame(..)
   , Space
   , GameId
+  , Tile(..)
+  , TileType(..)
+  , Player(..)
   -- Constructors
   , newGameId
   , gameIdFromText
@@ -32,8 +37,13 @@ module Licross.Types
   -- accessors
   , xPos
   , yPos
-  , tilePoints
+  , tileScore
+  , tileLetter
   ) where
+
+-- aeson
+import Data.Aeson ((.=))
+import qualified Data.Aeson
 
 -- base
 import GHC.Generics (Generic)
@@ -53,6 +63,7 @@ import qualified Control.Lens
 
 -- licross
 import Licross.Prelude
+import Licross.Extras.Aeson
 
 
 data Position = Position
@@ -69,10 +80,16 @@ data TileType
   | Blank
   deriving (Show, Eq)
 
+instance Data.Aeson.ToJSON TileType where
+  toJSON Blank = Data.Aeson.toJSON ("" :: Data.Text.Text)
+  toJSON (Letter x) = Data.Aeson.toJSON x
+
 data Tile = Tile
-  { tileText :: TileType
-  , tilePoints :: Integer
-  } deriving (Show, Eq)
+  { _tileLetter :: TileType
+  , _tileScore :: Int
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving Data.Aeson.ToJSON via StripPrefix "_tile" Tile
 
 data PlacedTile =
   PlacedTile Text
@@ -104,10 +121,12 @@ spaceBonus f parent =
   fmap (\x -> parent {_spaceBonus = x}) (f (_spaceBonus parent))
 
 data Player = Player
-  { playerRack :: [Tile]
-  , playerScore :: Integer
-  , playerName :: Text
-  } deriving (Show)
+  { _playerRack :: [Tile]
+  , _playerScore :: Int
+  , _playerName :: Text
+  }
+  deriving stock (Show, Generic)
+  deriving Data.Aeson.ToJSON via StripPrefix "_player" Player
 
 newtype PlayerId =
   PlayerId Integer
@@ -163,6 +182,26 @@ gameVersion :: Control.Lens.Lens' Game Int
 gameVersion f parent =
   fmap (\x -> parent {_gameVersion = x}) (f (_gameVersion parent))
 
+tileScore :: Control.Lens.Lens' Tile Int
+tileScore f parent =
+  fmap (\x -> parent {_tileScore = x}) (f (_tileScore parent))
+
+tileLetter :: Control.Lens.Lens' Tile TileType
+tileLetter f parent =
+  fmap (\x -> parent {_tileLetter = x}) (f (_tileLetter parent))
+
+playerRack :: Control.Lens.Lens' Player [Tile]
+playerRack f parent =
+  fmap (\x -> parent {_playerRack = x}) (f (_playerRack parent))
+
+playerScore :: Control.Lens.Lens' Player Int
+playerScore f parent =
+  fmap (\x -> parent {_playerScore = x}) (f (_playerScore parent))
+
+playerName :: Control.Lens.Lens' Player Text
+playerName f parent =
+  fmap (\x -> parent {_playerName = x}) (f (_playerName parent))
+
 showSpace :: Space -> T.Text
 showSpace space =
   case view spaceOccupant space of
@@ -213,4 +252,4 @@ emptyGame =
     }
 
 mkPlacedTile letter score =
-  PlacedTile letter (Tile {tileText = Letter letter, tilePoints = score})
+  PlacedTile letter (Tile {_tileLetter = Letter letter, _tileScore = score})

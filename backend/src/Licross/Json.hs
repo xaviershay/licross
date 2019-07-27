@@ -13,6 +13,9 @@ import qualified Data.HashMap.Strict as M
 import Licross.Prelude
 import Licross.Types
 
+-- text
+import qualified Data.Text
+
 newtype FlattenSpace =
   FlattenSpace (Position, Space)
 
@@ -20,8 +23,8 @@ instance ToJSON RedactedGame where
   toJSON (RedactedGame Nothing x) =
     object
       [ "board" .= map FlattenSpace (M.toList $ view gameBoard x)
-    --, "bag" .= view gameBag x
-    --, "players" .= view gamePlayers x
+      , "bag" .= view gameBag x
+      , "players" .= view gamePlayers x
       ]
 
 instance ToJSON FlattenSpace where
@@ -31,7 +34,7 @@ instance ToJSON FlattenSpace where
     maybe mempty tileFields (view spaceOccupant space)
     where
       tileFields (PlacedTile text tile) =
-        ["letter" .= text, "score" .= tilePoints tile]
+        ["letter" .= text, "score" .= view tileScore tile]
 
 instance ToJSON Bonus where
   toJSON None = jsonString "none"

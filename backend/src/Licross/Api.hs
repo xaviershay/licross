@@ -15,12 +15,13 @@ import qualified Data.Aeson
 import qualified Data.Binary.Builder
 import qualified Data.HashMap.Strict as M -- unordered-containers
 import Data.IORef
-import Network.HTTP.Types (status200, status404) -- http-types
+import Network.HTTP.Types (status200, status404, hContentType) -- http-types
 import Network.Wai -- wai
 import qualified Network.Wai.EventSource -- wai-extra
 import Network.Wai.Handler.Warp -- warp
 import Network.Wai.Middleware.Cors -- wai-cors
 import Network.Wai.Middleware.RequestLogger -- wai-extra
+import Network.Wai.EventSource.EventStream (eventToBuilder)
 import Servant -- servant-server
 import Servant.RawM (RawM)
 
@@ -68,36 +69,69 @@ newGame = do
 postMove :: GameId -> PlayerId -> Move -> AppM ()
 postMove = error ""
 
+-- TODO: Move to extras dir, contribute back
+eventStreamIO :: ((Network.Wai.EventSource.ServerEvent -> IO()) -> IO ()) -> Application
+eventStreamIO handler _ respond = respond $ responseStream status200 [(hContentType, "text/event-stream")] (streamer handler)
+  where
+    streamer handler sendChunk flush = do
+      handler emit
+
+      where
+        emit :: Network.Wai.EventSource.ServerEvent -> IO ()
+        emit event = do
+           case eventToBuilder event of
+             Nothing -> return ()
+             Just b  -> sendChunk b >> flush
+
+myApp :: Application
+myApp = do
+  eventStreamIO (handle 0)
+
+  where
+    handle :: Int -> (Network.Wai.EventSource.ServerEvent -> IO ()) -> IO ()
+    handle counter emit = do
+      emit $ Network.Wai.EventSource.ServerEvent
+               (Just "snapshot")
+               Nothing
+               [ Data.Binary.Builder.fromLazyByteString
+                   (Data.Aeson.encode $ counter)
+               ]
+
+      Control.Concurrent.threadDelay 1000000
+
+      handle 1 emit
+
 subscribeGame :: GameId -> PlayerId -> AppM Application
 subscribeGame gid pid = do
   State {games = gs} <- ask
-  lastVersionRef <- liftIO $ newIORef 0
 
-  return $ Network.Wai.EventSource.eventSourceAppIO $ liftIO $ do
-    lastVersion <- readIORef lastVersionRef
-    let action = atomically $ do
-                    x <- readTVar gs
+  return $ eventStreamIO (handle gs 0)
 
-                    case M.lookup gid x of
-                      Nothing -> return Nothing
-                      Just game -> do
-                        check $ view gameVersion game >= lastVersion
-                        return $ Just game
+  where
+    handle :: TVar (M.HashMap GameId Game) -> Int -> (Network.Wai.EventSource.ServerEvent -> IO ()) -> IO ()
+    handle gs lastVersion emit = do
+      let action = atomically $ do
+                      x <- readTVar gs
 
-    maybeGame <- action
+                      case M.lookup gid x of
+                        Nothing -> return Nothing
+                        Just game -> do
+                          check $ view gameVersion game >= lastVersion
+                          return $ Just game
 
-    modifyIORef lastVersionRef (+ 1)
+      maybeGame <- action
 
-    return $
-      case maybeGame of
-        Nothing -> Network.Wai.EventSource.CloseEvent
-        Just game ->
-          Network.Wai.EventSource.ServerEvent
-            (Just "snapshot")
-            Nothing
-            [ Data.Binary.Builder.fromLazyByteString
-                (Data.Aeson.encode $ RedactedGame Nothing game)
-            ]
+      emit $ case maybeGame of
+               Nothing -> Network.Wai.EventSource.CloseEvent
+               Just game ->
+                 Network.Wai.EventSource.ServerEvent
+                   (Just "snapshot")
+                   Nothing
+                   [ Data.Binary.Builder.fromLazyByteString
+                       (Data.Aeson.encode $ RedactedGame Nothing game)
+                   ]
+
+      handle gs (lastVersion + 1) emit
 
 server :: Servant.ServerT GameAPI AppM
 server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
