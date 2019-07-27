@@ -35,6 +35,9 @@ class Board extends React.Component {
     let inited = false;
 
     const source = new EventSource(this.props.uri)
+    source.addEventListener("finished", (e) => {
+      source.close();
+    })
     source.addEventListener("snapshot", (e) => {
       const data = JSON.parse(e.data)
       let boardData = []

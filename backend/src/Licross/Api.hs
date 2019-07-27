@@ -40,7 +40,7 @@ instance Servant.FromHttpApiData PlayerId where
 -- revisit, but for now was creating too much conceptual overhead for little
 -- benefit.
 type GameAPI
-   = "example" :> Get '[ JSON] RedactedGame
+   = "example" :> RawM
      :<|> "game" :> Post '[ JSON] GameId
      -- TODO: PlayerId will eventually come from authenticated session rather than query param
      :<|> "game" :> Capture "id" GameId :> "join" :> QueryParam "playerId" PlayerId :> Post '[ JSON] ()
@@ -54,8 +54,19 @@ data State = State
 
 type AppM = ReaderT State Servant.Handler
 
-example :: AppM RedactedGame
-example = return $ RedactedGame Nothing titleGame
+example :: AppM Application
+example = return . eventStreamIO $ \emit -> do
+  emit $ Network.Wai.EventSource.ServerEvent
+    (Just "snapshot")
+    Nothing
+    [ Data.Binary.Builder.fromLazyByteString
+        (Data.Aeson.encode $ RedactedGame Nothing titleGame)
+    ]
+  emit $ Network.Wai.EventSource.ServerEvent
+    (Just "finished")
+    Nothing
+    [ mempty ]
+  emit $ Network.Wai.EventSource.CloseEvent
 
 joinGame :: GameId -> Maybe PlayerId -> AppM ()
 joinGame _ Nothing = throwError $ err400 {errBody = "Must provide playerId" }
