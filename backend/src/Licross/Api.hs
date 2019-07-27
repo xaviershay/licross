@@ -7,7 +7,7 @@ module Licross.Api
   ) where
 
 import qualified Control.Concurrent
-import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar, check) -- stm
+import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar, check, writeTVar) -- stm
 import Control.Concurrent.Chan
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
@@ -42,7 +42,8 @@ instance Servant.FromHttpApiData PlayerId where
 type GameAPI
    = "example" :> Get '[ JSON] RedactedGame
      :<|> "game" :> Post '[ JSON] GameId
-     :<|> "game" :> Capture "id" GameId :> "join" :> Post '[ JSON] PlayerId
+     -- TODO: PlayerId will eventually come from authenticated session rather than query param
+     :<|> "game" :> Capture "id" GameId :> "join" :> QueryParam "playerId" PlayerId :> Post '[ JSON] ()
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> RawM
 
@@ -56,8 +57,24 @@ type AppM = ReaderT State Servant.Handler
 example :: AppM RedactedGame
 example = return $ RedactedGame Nothing titleGame
 
-joinGame :: GameId -> AppM PlayerId
-joinGame = error ""
+joinGame :: GameId -> Maybe PlayerId -> AppM ()
+joinGame _ Nothing = throwError $ err400 {errBody = "Must provide playerId" }
+joinGame gid (Just pid) = do
+  State {games = gs} <- ask
+  -- This pattern feels like it could be cleaner. Revisit once more examples of
+  -- changing game state.
+  updated <- liftIO . atomically $ do
+    x <- readTVar gs
+
+    case M.lookup gid x of
+      Nothing -> return False
+      Just game -> do
+        modifyTVar gs (M.adjust (over gamePlayers (M.insert pid (mkPlayer "Unknown"))) gid)
+        return True
+
+  case updated of
+    False -> throwError $ err404 { errBody = "Game not found" }
+    True -> return ()
 
 newGame :: AppM GameId
 newGame = do

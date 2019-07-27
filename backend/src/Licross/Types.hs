@@ -24,6 +24,7 @@ module Licross.Types
   , gameIdToText
   , mkPos
   , mkPlacedTile
+  , mkPlayer
   , mkTile
   , emptySpace
   , emptyGame
@@ -132,9 +133,20 @@ data Player = Player
   deriving stock (Show, Generic)
   deriving Data.Aeson.ToJSON via StripPrefix "_player" Player
 
+mkPlayer name = Player
+  { _playerRack = mempty
+  , _playerScore = 0
+  , _playerName = name
+  }
+
 newtype PlayerId =
   PlayerId Integer
-  deriving (Show, Eq, Generic)
+  deriving stock (Show, Eq, Generic)
+  deriving Data.Aeson.ToJSONKey via PlayerId
+
+instance Hashable PlayerId
+--instance Data.Aeson.ToJSONKey PlayerId
+--instance Data.Aeson.FromJSONKey PlayerId
 
 -- TODO: Need to move PlayerId outside this type, so that API FromJSON etc can
 -- work nicely.
@@ -143,11 +155,12 @@ data Move =
             (M.HashMap Position PlacedTile)
 
 type Board = M.HashMap Position Space
+type PlayerMap = M.HashMap PlayerId Player
 
 data Game = Game
   { _gameBoard :: Board
   , _gameBag :: [Tile]
-  , _gamePlayers :: [Player]
+  , _gamePlayers :: PlayerMap
   , _gameVersion :: Int
   } deriving (Show)
 
@@ -178,7 +191,7 @@ gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
 gameBag :: Control.Lens.Lens' Game [Tile]
 gameBag f parent = fmap (\x -> parent {_gameBag = x}) (f (_gameBag parent))
 
-gamePlayers :: Control.Lens.Lens' Game [Player]
+gamePlayers :: Control.Lens.Lens' Game PlayerMap
 gamePlayers f parent =
   fmap (\x -> parent {_gamePlayers = x}) (f (_gamePlayers parent))
 
