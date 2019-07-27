@@ -4,17 +4,14 @@
 module Licross.Json ( ) where
 
 -- aeson
-import Data.Aeson
+import           Data.Aeson
 
 -- unordered-containers
 import qualified Data.HashMap.Strict as M
 
 -- licross
-import Licross.Prelude
-import Licross.Types
-
--- text
-import qualified Data.Text
+import           Licross.Prelude
+import           Licross.Types
 
 newtype FlattenSpace =
   FlattenSpace (Position, Space)

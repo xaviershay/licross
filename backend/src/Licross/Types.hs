@@ -1,6 +1,6 @@
-{-# LANGUAGE DeriveGeneric #-}
-{-# LANGUAGE DerivingVia #-}
-{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE DerivingVia       #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Licross.Types
@@ -42,29 +42,28 @@ module Licross.Types
   ) where
 
 -- aeson
-import Data.Aeson ((.=))
+import           Data.Aeson           ((.=))
 import qualified Data.Aeson
 
 -- base
-import GHC.Generics (Generic)
+import           GHC.Generics         (Generic)
 
 -- text
-import qualified Data.Text as T
-import Data.Text (Text(..))
+import           Data.Text            (Text (..))
+import qualified Data.Text            as T
 
 -- unordered-containers
-import qualified Data.HashMap.Strict as M
+import qualified Data.HashMap.Strict  as M
 
 -- hashable
-import Data.Hashable (Hashable(..))
+import           Data.Hashable        (Hashable (..))
 
 -- lens
 import qualified Control.Lens
 
 -- licross
-import Licross.Prelude
-import Licross.Extras.Aeson
-
+import           Licross.Extras.Aeson
+import           Licross.Prelude
 
 data Position = Position
   { yPos :: Integer
