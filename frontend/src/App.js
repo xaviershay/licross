@@ -26,19 +26,27 @@ class Board extends React.Component {
   constructor(props) {
     super()
     this.node = React.createRef()
+    this.source = null;
     this.state = {
       tiles: []
+    }
+  }
+
+  componentWillUnmount() {
+    if (this.source) {
+      this.source.close();
+      this.source = null;
     }
   }
 
   componentDidMount() {
     let inited = false;
 
-    const source = new EventSource(this.props.uri)
-    source.addEventListener("finished", (e) => {
-      source.close();
+    this.source = new EventSource(this.props.uri)
+    this.source.addEventListener("finished", (e) => {
+      this.source.close();
     })
-    source.addEventListener("snapshot", (e) => {
+    this.source.addEventListener("snapshot", (e) => {
       const data = JSON.parse(e.data)
       let boardData = []
       let tileData = []
@@ -69,43 +77,6 @@ class Board extends React.Component {
         this.updateBoard(d3.select(node).select('svg'), tileData)
       }
     })
-    // TODO: Fix /example (convert it to same subscribe interface)
-    /*
-    let f = () => {
-      // TODO: Cancel this on unmount somehow
-      fetch(`${this.props.uri}?version=${version}&${(new Date()).getTime()}`)
-        .then(results => results.json())
-        .then(data => {
-          let boardData = []
-          let tileData = []
-          let tileId = 0
-          data.board.forEach(space => {
-            if (space.letter) {
-              tileId += 1;
-              tileData.push(
-                {
-                  "id": tileId,
-                  "letter": space.letter,
-                  "score": space.score,
-                  "location": ["board", [space.x, space.y]], "moveable": false
-                }
-              )
-            }
-
-            const {x, y, bonus} = space;
-
-            boardData.push({ x, y, bonus})
-          })
-
-          this.renderBoard(boardData, tileData)
-          version = data.version;
-          //f();
-        })
-        .catch(e => console.log(e))
-    }
-
-    f()
-    */
   }
 
   renderBoard(boardData, tileData) {
