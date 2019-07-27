@@ -46,8 +46,9 @@ type GameAPI
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> RawM
 
-newtype State = State
+data State = State
   { games :: TVar (M.HashMap GameId Game)
+  , templateGame :: Game
   }
 
 type AppM = ReaderT State Servant.Handler
@@ -60,10 +61,10 @@ joinGame = error ""
 
 newGame :: AppM GameId
 newGame = do
-  State {games = gs} <- ask
+  State {games = gs, templateGame = template} <- ask
   liftIO $ do
     id <- newGameId
-    atomically $ modifyTVar gs (M.insert id emptyGame)
+    atomically $ modifyTVar gs (M.insert id template)
     return id
 
 postMove :: GameId -> PlayerId -> Move -> AppM ()
@@ -154,8 +155,8 @@ app s =
             ["authorization", "content-type"]
         }
 
-runServer :: Int -> IO ()
-runServer port = do
+runServer :: Int -> Game -> IO ()
+runServer port templateGame = do
   tvar <- atomically $ newTVar mempty
-  let initialState = State tvar
+  let initialState = State tvar templateGame
   Network.Wai.Handler.Warp.run port (app initialState)

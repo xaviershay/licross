@@ -24,6 +24,7 @@ module Licross.Types
   , gameIdToText
   , mkPos
   , mkPlacedTile
+  , mkTile
   , emptySpace
   , emptyGame
   -- lens
@@ -89,6 +90,10 @@ data Tile = Tile
   }
   deriving stock (Show, Eq, Generic)
   deriving Data.Aeson.ToJSON via StripPrefix "_tile" Tile
+
+mkTile :: T.Text -> Int -> Tile
+mkTile "" score = Tile { _tileLetter = Blank, _tileScore = score }
+mkTile letter score = Tile { _tileLetter = Letter letter, _tileScore = score }
 
 data PlacedTile =
   PlacedTile Text

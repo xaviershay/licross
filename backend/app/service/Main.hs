@@ -13,7 +13,28 @@ import Licross.Api
 import qualified Data.Text as T
 
 main :: IO ()
-main = Licross.Api.runServer 8080
+main = do
+  let gameTemplate =
+        set gameBag
+          [ mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "A" 1
+          , mkTile "B" 3
+          , mkTile "B" 3
+          , mkTile "B" 3
+          , mkTile "B" 3
+          , mkTile "B" 3
+          , mkTile "B" 3
+          ]
+        $ emptyGame
+  Licross.Api.runServer 8080 gameTemplate
 
 main2 :: IO ()
 main2 =
