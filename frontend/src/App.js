@@ -126,7 +126,7 @@ class Board extends React.Component {
       .attr("fill", "white")
       .attr("text-anchor", "middle")
       .attr("alignment-baseline", "middle")
-      .html(d => d.bonus === "anchor" ? "☪" : d.bonus.toUpperCase())
+      .html(d => d.bonus === "anchor" ? "★" : d.bonus.toUpperCase())
 
     this.updateBoard(container, tileData)
   }
