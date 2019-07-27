@@ -16,6 +16,13 @@ import           Licross.Types
 newtype FlattenSpace =
   FlattenSpace (Position, Space)
 
+instance FromJSON Tile where
+  parseJSON = withObject "Tile" $ \v -> do
+    letter <- v .: "letter"
+    score <- v .: "score"
+
+    return $ mkTile letter score
+
 instance ToJSON RedactedGame where
   toJSON (RedactedGame Nothing x) =
     object
@@ -23,6 +30,22 @@ instance ToJSON RedactedGame where
       , "bag" .= view gameBag x
       , "players" .= view gamePlayers x
       ]
+
+data FlattenedSpace = FlattenedSpace Bonus Integer Integer
+
+instance FromJSON FlattenedSpace where
+  parseJSON = withObject "FlattenedSpace" $ \v -> do
+    FlattenedSpace <$> v .: "bonus" <*> v .: "x" <*> v .: "y"
+
+instance FromJSON Game where
+  parseJSON = withObject "Game" $ \v -> do
+    bag <- v .: "bag"
+    boardSpec <- v .: "board"
+
+    return
+      . set gameBoard (M.fromList $ map (\(FlattenedSpace bonus x y) -> (mkPos x y, set spaceBonus bonus emptySpace)) boardSpec)
+      . set gameBag bag
+      $ emptyGame
 
 instance ToJSON FlattenSpace where
   toJSON (FlattenSpace (pos, space)) =
@@ -40,10 +63,21 @@ instance ToJSON Bonus where
   toJSON (LetterMultiplier 2) = jsonString "dl"
   toJSON (LetterMultiplier 3) = jsonString "tl"
   toJSON Anchor = jsonString "anchor"
-  toJSON (CompositeBonus a b) = error "unimplemented"
+  toJSON x = jsonString "unimplemented"
 
 jsonString :: String -> Data.Aeson.Value
 jsonString x = toJSON x
+
+instance FromJSON Bonus where
+  parseJSON = withText "Bonus" $ \v ->
+    return $
+      case v of
+        "none" -> None
+        "dw" -> WordMultiplier 2
+        "tw" -> WordMultiplier 3
+        "dl" -> LetterMultiplier 2
+        "tl" -> LetterMultiplier 3
+        "anchor" -> Anchor
 
 instance ToJSON PlayerId
 instance ToJSON GameId
