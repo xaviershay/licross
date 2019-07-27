@@ -8,7 +8,10 @@ Not a real thing.
 
     stack build
     stack test
+
     stack ghci
+    > :set args ../templates/example.json
+    > main
 
 ### Style Guide
 
