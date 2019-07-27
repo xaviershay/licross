@@ -308,7 +308,6 @@ function NewGame() {
       })
 
       const gameId = await response.json()
-      console.log(gameId)
       window.location = `/game/${gameId}`
     } catch(e) {
       alert(e) // TODO
@@ -321,11 +320,32 @@ function NewGame() {
 }
 
 function Game({match}) {
+  const [joining, setJoining] = useState(false);
   const gameId = match.params.id
   const playerId = "1234"
 
+  const joinHandler = async () => {
+    const uri = `http://localhost:8080/game/${gameId}/join?playerId=${playerId}`
+    try {
+      const response = await fetch(uri, {
+        method: 'POST',
+        body: JSON.stringify({}),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      const gameId = await response.json()
+      alert("joined")
+    } catch(e) {
+      alert(e) // TODO
+    } finally {
+      setJoining(false)
+    }
+  }
+
   return <div>
-    <span>{gameId}</span>
+    <button onClick={joinHandler}>Join Game</button>
     <Board uri={`http://localhost:8080/game/${gameId}/player/${playerId}/subscribe`} />
   </div>
 }
@@ -335,11 +355,11 @@ function App() {
     <Router>
       <ul>
         <li><Link to="/">Home</Link></li>
-        <li><Link to="/game/new">New Game</Link></li>
+        <li><Link to="/new-game">New Game</Link></li>
         <li><Link to="/example">Example</Link></li>
       </ul>
       <Route path="/" exact component={Home} />
-      <Route path="/game/new" exact component={NewGame} />
+      <Route path="/new-game" exact component={NewGame} />
       <Route path="/game/:id" exact component={Game} />
       <Route path="/example" component={Example} />
     </Router>

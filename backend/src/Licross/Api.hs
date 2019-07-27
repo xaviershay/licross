@@ -69,7 +69,7 @@ joinGame gid (Just pid) = do
     case M.lookup gid x of
       Nothing -> return False
       Just game -> do
-        modifyTVar gs (M.adjust (over gamePlayers (M.insert pid (mkPlayer "Unknown"))) gid)
+        modifyTVar gs (M.adjust (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer "Unknown"))) gid)
         return True
 
   case updated of
@@ -101,24 +101,6 @@ eventStreamIO handler _ respond = respond $ responseStream status200 [(hContentT
              Nothing -> return ()
              Just b  -> sendChunk b >> flush
 
-myApp :: Application
-myApp = do
-  eventStreamIO (handle 0)
-
-  where
-    handle :: Int -> (Network.Wai.EventSource.ServerEvent -> IO ()) -> IO ()
-    handle counter emit = do
-      emit $ Network.Wai.EventSource.ServerEvent
-               (Just "snapshot")
-               Nothing
-               [ Data.Binary.Builder.fromLazyByteString
-                   (Data.Aeson.encode $ counter)
-               ]
-
-      Control.Concurrent.threadDelay 1000000
-
-      handle 1 emit
-
 subscribeGame :: GameId -> PlayerId -> AppM Application
 subscribeGame gid pid = do
   State {games = gs} <- ask
@@ -137,19 +119,22 @@ subscribeGame gid pid = do
                           check $ view gameVersion game >= lastVersion
                           return $ Just game
 
+      let games = atomically $ do
+                    x <- readTVar gs
+                    return $ M.keys x
       maybeGame <- action
 
-      emit $ case maybeGame of
-               Nothing -> Network.Wai.EventSource.CloseEvent
-               Just game ->
-                 Network.Wai.EventSource.ServerEvent
-                   (Just "snapshot")
-                   Nothing
-                   [ Data.Binary.Builder.fromLazyByteString
-                       (Data.Aeson.encode $ RedactedGame Nothing game)
-                   ]
+      case maybeGame of
+        Nothing -> emit Network.Wai.EventSource.CloseEvent
+        Just game -> do
+          emit $ Network.Wai.EventSource.ServerEvent
+            (Just "snapshot")
+            Nothing
+            [ Data.Binary.Builder.fromLazyByteString
+                (Data.Aeson.encode $ RedactedGame Nothing game)
+            ]
 
-      handle gs (lastVersion + 1) emit
+          handle gs (lastVersion + 1) emit
 
 server :: Servant.ServerT GameAPI AppM
 server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame

@@ -3,6 +3,7 @@ module Licross.Prelude
   , module Data.Function
   , module Data.Ord
   , module Data.List
+  , module Debug.Trace
   , note
   , shush
   , randomId
@@ -18,6 +19,8 @@ import Control.Lens (_Just, at, ix, over, set, view)
 import Data.Function (on)
 import Data.List (groupBy, sortBy)
 import Data.Ord (comparing)
+-- Ideally would only include this in development builds.
+import Debug.Trace (trace, traceM)
 
 -- internal base functions
 import qualified Data.Char

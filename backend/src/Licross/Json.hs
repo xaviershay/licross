@@ -47,6 +47,7 @@ jsonString x = toJSON x
 
 instance ToJSON PlayerId
 instance ToJSON GameId
+instance ToJSONKey PlayerId
 
 instance FromJSON Move where
   parseJSON = withObject "Move" $ \v -> do

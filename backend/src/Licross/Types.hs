@@ -142,11 +142,8 @@ mkPlayer name = Player
 newtype PlayerId =
   PlayerId Integer
   deriving stock (Show, Eq, Generic)
-  deriving Data.Aeson.ToJSONKey via PlayerId
 
 instance Hashable PlayerId
---instance Data.Aeson.ToJSONKey PlayerId
---instance Data.Aeson.FromJSONKey PlayerId
 
 -- TODO: Need to move PlayerId outside this type, so that API FromJSON etc can
 -- work nicely.
