@@ -186,7 +186,7 @@ subscribeGame gid pid = do
                 (Data.Aeson.encode $ RedactedGame Nothing game)
             ]
 
-          handle gs (lastVersion + 1) emit
+          handle gs (view gameVersion game + 1) emit
 
 server :: Servant.ServerT GameAPI AppM
 server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame :<|> startGame
