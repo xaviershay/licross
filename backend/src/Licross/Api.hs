@@ -46,6 +46,7 @@ type GameAPI
      :<|> "game" :> Capture "id" GameId :> "join" :> QueryParam "playerId" PlayerId :> Post '[ JSON] ()
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> RawM
+     :<|> "game" :> Capture "id" GameId :> "start" :> Post '[ JSON] ()
 
 data State = State
   { games :: TVar (M.HashMap GameId Game)
@@ -80,7 +81,7 @@ joinGame gid (Just pid) = do
     case M.lookup gid x of
       Nothing -> return False
       Just game -> do
-        modifyTVar gs (M.adjust (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer "Unknown"))) gid)
+        modifyTVar gs (M.adjust (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer pid "Unknown"))) gid)
         return True
 
   case updated of
@@ -97,6 +98,46 @@ newGame = do
 
 postMove :: GameId -> PlayerId -> Move -> AppM ()
 postMove = error ""
+
+fillRacks :: Game -> Game
+fillRacks game =
+  let ps = view gamePlayers game in
+  foldl fillRackFor game ps
+
+  where
+    fillRackFor game player =
+      let rack = view playerRack player in
+
+      foldl (moveTileFromBag player) game [1..(7 - length rack)]
+
+    moveTileFromBag player game n =
+      -- TODO: Randomness
+      let tile = take 1 . view gameBag $ game in
+      let bag = drop 1 . view gameBag $ game in
+
+      -- TODO: handle no tiles
+
+      case tile of
+        [x] -> over gameBag (drop 1) . over (gamePlayers . at (view playerId player) . _Just . playerRack) ((:) x) $ game
+        _   -> game
+
+startGame :: GameId -> AppM ()
+startGame gid = do
+  State {games = gs} <- ask
+  -- This pattern feels like it could be cleaner. Revisit once more examples of
+  -- changing game state.
+  updated <- liftIO . atomically $ do
+    x <- readTVar gs
+
+    case M.lookup gid x of
+      Nothing -> return False
+      Just game -> do
+        modifyTVar gs (M.adjust (over gameVersion (1 +) . fillRacks) gid)
+        return True
+
+  case updated of
+    False -> throwError $ err404 { errBody = "Game not found" }
+    True -> return ()
 
 -- TODO: Move to extras dir, contribute back
 eventStreamIO :: ((Network.Wai.EventSource.ServerEvent -> IO()) -> IO ()) -> Application
@@ -148,7 +189,7 @@ subscribeGame gid pid = do
           handle gs (lastVersion + 1) emit
 
 server :: Servant.ServerT GameAPI AppM
-server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
+server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame :<|> startGame
 
 gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy

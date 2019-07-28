@@ -48,6 +48,7 @@ class Board extends React.Component {
     })
     this.source.addEventListener("snapshot", (e) => {
       const data = JSON.parse(e.data)
+
       let boardData = []
       let tileData = []
       let tileId = 0
@@ -318,8 +319,27 @@ function Game({match}) {
     }
   }
 
+  const startHandler = async () => {
+    const uri = `http://localhost:8080/game/${gameId}/start`
+    try {
+      const response = await fetch(uri, {
+        method: 'POST',
+        body: JSON.stringify({}),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+
+      alert("started")
+    } catch(e) {
+      alert(e) // TODO
+    } finally {
+    }
+  }
+
   return <div>
     <button onClick={joinHandler}>Join Game</button>
+    <button onClick={startHandler}>Start Game</button>
     <Board uri={`http://localhost:8080/game/${gameId}/player/${playerId}/subscribe`} />
   </div>
 }

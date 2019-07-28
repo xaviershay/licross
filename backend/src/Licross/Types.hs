@@ -29,6 +29,8 @@ module Licross.Types
   , emptySpace
   , emptyGame
   -- lens
+  , playerId
+  , playerRack
   , spaceBonus
   , spaceOccupant
   , gameBoard
@@ -129,20 +131,23 @@ data Player = Player
   { _playerRack :: [Tile]
   , _playerScore :: Int
   , _playerName :: Text
+  , _playerId :: PlayerId
   }
   deriving stock (Show, Generic)
   deriving Data.Aeson.ToJSON via StripPrefix "_player" Player
 
-mkPlayer name = Player
+mkPlayer id name = Player
   { _playerRack = mempty
   , _playerScore = 0
   , _playerName = name
+  , _playerId = id
   }
 
 newtype PlayerId =
   PlayerId Integer
   deriving stock (Show, Eq, Generic)
 
+instance Data.Aeson.ToJSON PlayerId
 instance Hashable PlayerId
 
 -- TODO: Need to move PlayerId outside this type, so that API FromJSON etc can
@@ -203,6 +208,10 @@ tileScore f parent =
 tileLetter :: Control.Lens.Lens' Tile TileType
 tileLetter f parent =
   fmap (\x -> parent {_tileLetter = x}) (f (_tileLetter parent))
+
+playerId :: Control.Lens.Lens' Player PlayerId
+playerId f parent =
+  fmap (\x -> parent {_playerId = x}) (f (_playerId parent))
 
 playerRack :: Control.Lens.Lens' Player [Tile]
 playerRack f parent =

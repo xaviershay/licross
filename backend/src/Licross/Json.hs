@@ -79,7 +79,6 @@ instance FromJSON Bonus where
         "tl" -> LetterMultiplier 3
         "anchor" -> Anchor
 
-instance ToJSON PlayerId
 instance ToJSON GameId
 instance ToJSONKey PlayerId
 
