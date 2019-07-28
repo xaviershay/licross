@@ -28,7 +28,7 @@ instance ToJSON RedactedGame where
     object
       [ "board" .= map FlattenSpace (M.toList $ view gameBoard x)
       , "bag" .= view gameBag x
-      , "players" .= view gamePlayers x
+      , "players" .= (M.elems $ view gamePlayers x)
       ]
 
 data FlattenedSpace = FlattenedSpace Bonus Integer Integer

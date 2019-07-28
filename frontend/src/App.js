@@ -53,7 +53,7 @@ class Board extends React.Component {
       let tileData = []
       let tileId = 0
       data.board.forEach(space => {
-        if (space.letter) {
+        if (space.letter != null) {
           tileId += 1;
           tileData.push(
             {
@@ -69,6 +69,20 @@ class Board extends React.Component {
 
         boardData.push({ x, y, bonus})
       })
+
+      const player = data.players.find(p => p.id == '1234') // TODO: Don't hard code playerId
+
+      if (player != null) {
+        player.rack.forEach((tile, n) => {
+          tileId += 1;
+          tileData.push( {
+            "id": tileId,
+            "letter": tile.letter,
+            "score": tile.score,
+            "location": ["rack", n], "moveable": true
+          })
+        })
+      }
 
       if (!inited) {
         this.renderBoard(boardData, tileData)
@@ -88,14 +102,14 @@ class Board extends React.Component {
       return;
     }
 
-    const showRack = false
+    const showRack = this.props.showRack
     const boardSize = tilesToPixels(gridWidth)
     const gutter = tileSize
     const rackHeight = tilesToPixels(1) + borderWidth
-    //const rackWidth = tilesToPixels(7) + borderWidth
+    const rackWidth = tilesToPixels(7) + borderWidth
 
     const containerWidth = boardSize + borderWidth
-    const containerHeight = boardSize + (showRack ? gutter + rackHeight : borderWidth)
+    const containerHeight = boardSize + (showRack ? gutter + rackHeight : 0) + borderWidth
     const containerColor = '#333'
 
     let container = d3.select(node).append('svg')
@@ -310,8 +324,7 @@ function Game({match}) {
         }
       })
 
-      const gameId = await response.json()
-      alert("joined")
+      //const gameId = await response.json()
     } catch(e) {
       alert(e) // TODO
     } finally {
@@ -329,8 +342,6 @@ function Game({match}) {
           'Content-Type': 'application/json'
         }
       })
-
-      alert("started")
     } catch(e) {
       alert(e) // TODO
     } finally {
@@ -340,7 +351,7 @@ function Game({match}) {
   return <div>
     <button onClick={joinHandler}>Join Game</button>
     <button onClick={startHandler}>Start Game</button>
-    <Board uri={`http://localhost:8080/game/${gameId}/player/${playerId}/subscribe`} />
+    <Board showRack uri={`http://localhost:8080/game/${gameId}/player/${playerId}/subscribe`} />
   </div>
 }
 
