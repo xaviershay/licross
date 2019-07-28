@@ -8,7 +8,6 @@ module Licross.Types
   ( Position
   , Game
   , Board(..)
-  , PlacedTile(..)
   , PlayerId(..)
   , Move(..)
   , Bonus(..)
@@ -24,7 +23,6 @@ module Licross.Types
   , gameIdFromText
   , gameIdToText
   , mkPos
-  , mkPlacedTile
   , mkPlayer
   , mkTile
   , emptySpace
@@ -38,6 +36,7 @@ module Licross.Types
   , gamePlayers
   , gameBag
   , gameVersion
+  , gameTiles
   , showBoard
   -- accessors
   , xPos
@@ -48,6 +47,7 @@ module Licross.Types
 
 -- aeson
 import           Data.Aeson
+import           Data.Aeson.Types (toJSONKeyText)
 
 -- base
 import           GHC.Generics         (Generic)
@@ -74,6 +74,15 @@ data Position = Position
   , xPos :: Integer
   } deriving (Show, Eq, Generic, Ord)
 
+instance ToJSON Position where
+  toJSON (Position { xPos = x, yPos = y}) = toJSON [x, y]
+
+instance ToJSONKey Position where
+  toJSONKey = toJSONKeyText showPosition
+    where
+      showPosition (Position { xPos = x, yPos = y}) =
+        T.pack (show x) <> "-" <> T.pack (show y)
+
 mkPos x y = Position {xPos = x, yPos = y}
 
 instance Hashable Position
@@ -91,11 +100,20 @@ newtype TileId = TileId Int deriving (Show, Eq, Generic)
 
 instance ToJSON TileId
 instance FromJSON TileId
+instance Hashable TileId
+
+data TileLocation = LocationBoard Position | LocationRack PlayerId | LocationBag deriving (Show, Eq)
+
+instance ToJSON TileLocation where
+  toJSON LocationBag = object [ "type" .= ("bag" :: String) ]
+  toJSON (LocationBoard pos) = object ["type" .= ("board" :: String), "position" .= pos]
+  toJSON (LocationRack pid) = object [ "type" .= ("rack" :: String), "player" .= pid ]
 
 data Tile = Tile
   { _tileLetter :: TileType
   , _tileScore :: Int
   , _tileId :: TileId
+  , _tileLocation :: TileLocation
   }
   deriving stock (Show, Generic)
   deriving Data.Aeson.ToJSON via StripPrefix "_tile" Tile
@@ -104,13 +122,15 @@ instance Eq Tile where
   a == b = _tileId a == _tileId b
 
 mkTile :: Int -> T.Text -> Int -> Tile
-mkTile id "" score = Tile { _tileLetter = Blank, _tileScore = score, _tileId = TileId id }
-mkTile id letter score = Tile { _tileLetter = Letter letter, _tileScore = score, _tileId = TileId id }
-
-data PlacedTile =
-  PlacedTile Text
-             Tile
-  deriving (Show, Eq)
+mkTile id letter score = Tile
+  { _tileLetter = toLetter letter
+  , _tileScore = score
+  , _tileId = TileId id
+  , _tileLocation = LocationBag
+  }
+  where
+    toLetter "" = Blank
+    toLetter l = Letter l
 
 data Bonus
   = None
@@ -123,12 +143,12 @@ data Bonus
 
 data Space = Space
   { _spaceBonus :: Bonus
-  , _spaceOccupant :: Maybe PlacedTile
+  , _spaceOccupant :: Maybe TileId
   } deriving (Eq, Show)
 
 emptySpace = Space None Nothing
 
-spaceOccupant :: Control.Lens.Lens' Space (Maybe PlacedTile)
+spaceOccupant :: Control.Lens.Lens' Space (Maybe TileId)
 spaceOccupant f parent =
   fmap (\x -> parent {_spaceOccupant = x}) (f (_spaceOccupant parent))
 
@@ -166,11 +186,13 @@ data Move =
 
 type Board = M.HashMap Position Space
 type PlayerMap = M.HashMap PlayerId Player
+type TileMap = M.HashMap TileId Tile
 
 data Game = Game
   { _gameBoard :: Board
   , _gameBag :: [Tile]
   , _gamePlayers :: PlayerMap
+  , _gameTiles :: TileMap
   , _gameVersion :: Int
   } deriving (Show)
 
@@ -205,6 +227,10 @@ gamePlayers :: Control.Lens.Lens' Game PlayerMap
 gamePlayers f parent =
   fmap (\x -> parent {_gamePlayers = x}) (f (_gamePlayers parent))
 
+gameTiles :: Control.Lens.Lens' Game TileMap
+gameTiles f parent =
+  fmap (\x -> parent {_gameTiles = x}) (f (_gameTiles parent))
+
 gameVersion :: Control.Lens.Lens' Game Int
 gameVersion f parent =
   fmap (\x -> parent {_gameVersion = x}) (f (_gameVersion parent))
@@ -237,7 +263,7 @@ showSpace :: Space -> T.Text
 showSpace space =
   case view spaceOccupant space of
     Nothing -> showBonus (view spaceBonus space)
-    Just (PlacedTile text _) -> " " <> text <> " "
+    Just (TileId id) -> " " <> T.pack (show id) <> " "
 
 showBonus :: Bonus -> T.Text
 showBonus None = "   "
@@ -279,9 +305,6 @@ emptyGame =
           [(mkPos x y, Space None Nothing) | x <- [0 .. 14], y <- [0 .. 14]]
     , _gameBag = mempty
     , _gamePlayers = mempty
+    , _gameTiles = mempty
     , _gameVersion = 0
     }
-
--- TODO: Remove PlacedTile
-mkPlacedTile letter score =
-  PlacedTile letter (Tile {_tileLetter = Letter letter, _tileScore = score, _tileId = TileId 0})

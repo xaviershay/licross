@@ -34,10 +34,15 @@ instance FromJSON Tile where
 
     return $ mkTile id letter score
 
+instance ToJSON Space where
+  toJSON = toJSON . view spaceBonus
+
 instance ToJSON RedactedGame where
   toJSON (RedactedGame Nothing x) =
+    -- TODO: Redact tiles in racks/bag
     object
-      [ "board" .= map FlattenSpace (M.toList $ view gameBoard x)
+      [ "board" .= view gameBoard x
+      , "tiles" .= view gameTiles x
       , "bag" .= view gameBag x
       , "players" .= (M.elems $ view gamePlayers x)
       ]
@@ -73,14 +78,14 @@ instance FromJSON Game where
     where
       buildTile (t, id) = mkTile id (_tileNoIdLetter t) (_tileNoIdScore t)
 
-instance ToJSON FlattenSpace where
-  toJSON (FlattenSpace (pos, space)) =
-    object $
-    ["x" .= xPos pos, "y" .= yPos pos, "bonus" .= view spaceBonus space] <>
-    maybe mempty tileFields (view spaceOccupant space)
-    where
-      tileFields (PlacedTile text tile) =
-        ["letter" .= text, "score" .= view tileScore tile]
+--instance ToJSON FlattenSpace where
+--  toJSON (FlattenSpace (pos, space)) =
+--    object $
+--    ["x" .= xPos pos, "y" .= yPos pos, "bonus" .= view spaceBonus space] <>
+--    maybe mempty tileFields (view spaceOccupant space)
+--    where
+--      tileFields (Tile text tile) =
+--        ["letter" .= text, "score" .= view tileScore tile]
 
 instance ToJSON Bonus where
   toJSON None = jsonString "none"
@@ -107,6 +112,7 @@ instance FromJSON Bonus where
 
 instance ToJSON GameId
 instance ToJSONKey PlayerId
+instance ToJSONKey TileId
 
 instance FromJSON Move where
   parseJSON = withObject "Move" $ \v -> do
