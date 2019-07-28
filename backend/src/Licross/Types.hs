@@ -16,6 +16,7 @@ module Licross.Types
   , Space
   , GameId
   , Tile(..)
+  , TileId(..)
   , TileType(..)
   , Player(..)
   -- Constructors
@@ -46,8 +47,7 @@ module Licross.Types
   ) where
 
 -- aeson
-import           Data.Aeson           ((.=))
-import qualified Data.Aeson
+import           Data.Aeson
 
 -- base
 import           GHC.Generics         (Generic)
@@ -87,16 +87,25 @@ instance Data.Aeson.ToJSON TileType where
   toJSON Blank = Data.Aeson.toJSON ("" :: Data.Text.Text)
   toJSON (Letter x) = Data.Aeson.toJSON x
 
+newtype TileId = TileId Int deriving (Show, Eq, Generic)
+
+instance ToJSON TileId
+instance FromJSON TileId
+
 data Tile = Tile
   { _tileLetter :: TileType
   , _tileScore :: Int
+  , _tileId :: TileId
   }
-  deriving stock (Show, Eq, Generic)
+  deriving stock (Show, Generic)
   deriving Data.Aeson.ToJSON via StripPrefix "_tile" Tile
 
-mkTile :: T.Text -> Int -> Tile
-mkTile "" score = Tile { _tileLetter = Blank, _tileScore = score }
-mkTile letter score = Tile { _tileLetter = Letter letter, _tileScore = score }
+instance Eq Tile where
+  a == b = _tileId a == _tileId b
+
+mkTile :: Int -> T.Text -> Int -> Tile
+mkTile id "" score = Tile { _tileLetter = Blank, _tileScore = score, _tileId = TileId id }
+mkTile id letter score = Tile { _tileLetter = Letter letter, _tileScore = score, _tileId = TileId id }
 
 data PlacedTile =
   PlacedTile Text
@@ -153,8 +162,7 @@ instance Hashable PlayerId
 -- TODO: Need to move PlayerId outside this type, so that API FromJSON etc can
 -- work nicely.
 data Move =
-  PlayTiles PlayerId
-            (M.HashMap Position PlacedTile)
+  PlayTiles [(Position, Tile)]
 
 type Board = M.HashMap Position Space
 type PlayerMap = M.HashMap PlayerId Player
@@ -274,5 +282,6 @@ emptyGame =
     , _gameVersion = 0
     }
 
+-- TODO: Remove PlacedTile
 mkPlacedTile letter score =
-  PlacedTile letter (Tile {_tileLetter = Letter letter, _tileScore = score})
+  PlacedTile letter (Tile {_tileLetter = Letter letter, _tileScore = score, _tileId = TileId 0})

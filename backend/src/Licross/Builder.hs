@@ -13,9 +13,20 @@ import Licross.Prelude
 import Licross.Types
 import Licross.Json
 
-putTilesInBag :: Int -> T.Text -> Int -> Game -> Game
-putTilesInBag n letter score =
-  over gameBag (replicate n (mkTile letter score) <>)
+type TileSpec = (Int, T.Text, Int)
+
+mkTileSpec a b c = (a, b, c)
+
+fillBag :: [TileSpec] -> Game -> Game
+fillBag spec =
+  let expanded = concatMap expandSpec spec in
+  let tiles = map buildTile $ zip expanded [1..] in
+
+  set gameBag tiles
+
+  where
+    expandSpec (n, letter, score) = replicate n (letter, score)
+    buildTile ((letter, score), id) = mkTile id letter score
 
 setBonusWithSymmetry :: Bonus -> Integer -> Integer -> Game -> Game
 setBonusWithSymmetry bonus x y game =
