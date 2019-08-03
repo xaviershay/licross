@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DerivingVia       #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Licross.Types
   -- Types
@@ -17,6 +18,7 @@ module Licross.Types
   , Tile(..)
   , TileId(..)
   , TileType(..)
+  , TileLocation(..)
   , Player(..)
   -- Constructors
   , newGameId
@@ -41,8 +43,10 @@ module Licross.Types
   -- accessors
   , xPos
   , yPos
+  , tileId
   , tileScore
   , tileLetter
+  , tileLocation
   ) where
 
 -- aeson
@@ -108,6 +112,15 @@ instance ToJSON TileLocation where
   toJSON LocationBag = object [ "type" .= ("bag" :: String) ]
   toJSON (LocationBoard pos) = object ["type" .= ("board" :: String), "position" .= pos]
   toJSON (LocationRack pid) = object [ "type" .= ("rack" :: String), "player" .= pid ]
+
+instance FromJSON TileLocation where
+  parseJSON = withObject "TileLocation" $ \v -> do
+    (t :: T.Text) <- v .: "type"
+
+    case t of
+      "board" -> do
+         pos <- Position <$> v .: "x" <*> v .: "y"
+         return $ LocationBoard pos
 
 data Tile = Tile
   { _tileLetter :: TileType
@@ -182,7 +195,8 @@ instance Hashable PlayerId
 -- TODO: Need to move PlayerId outside this type, so that API FromJSON etc can
 -- work nicely.
 data Move =
-  PlayTiles [(Position, Tile)]
+  PlayTiles [Tile]
+  deriving stock (Show, Generic)
 
 type Board = M.HashMap Position Space
 type PlayerMap = M.HashMap PlayerId Player
@@ -192,6 +206,7 @@ data Game = Game
   { _gameBoard :: Board
   , _gameBag :: [Tile]
   , _gamePlayers :: PlayerMap
+  -- TODO: Store all tiles in here
   , _gameTiles :: TileMap
   , _gameVersion :: Int
   } deriving (Show)
@@ -242,6 +257,14 @@ tileScore f parent =
 tileLetter :: Control.Lens.Lens' Tile TileType
 tileLetter f parent =
   fmap (\x -> parent {_tileLetter = x}) (f (_tileLetter parent))
+
+tileLocation :: Control.Lens.Lens' Tile TileLocation
+tileLocation f parent =
+  fmap (\x -> parent {_tileLocation = x}) (f (_tileLocation parent))
+
+tileId :: Control.Lens.Lens' Tile TileId
+tileId f parent =
+  fmap (\x -> parent {_tileId = x}) (f (_tileId parent))
 
 playerId :: Control.Lens.Lens' Player PlayerId
 playerId f parent =

@@ -44,7 +44,7 @@ type GameAPI
      :<|> "game" :> Post '[ JSON] GameId
      -- TODO: PlayerId will eventually come from authenticated session rather than query param
      :<|> "game" :> Capture "id" GameId :> "join" :> QueryParam "playerId" PlayerId :> Post '[ JSON] ()
-     :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
+     :<|> "game" :> Capture "id" GameId :> "move" :> QueryParam "playerId" PlayerId :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> RawM
      :<|> "game" :> Capture "id" GameId :> "start" :> Post '[ JSON] ()
 
@@ -96,9 +96,40 @@ newGame = do
     atomically $ modifyTVar gs (M.insert id template)
     return id
 
-postMove :: GameId -> PlayerId -> Move -> AppM ()
-postMove = error ""
+postMove :: GameId -> Maybe PlayerId -> Move -> AppM ()
+postMove gid pid move = do
+  State {games = gs} <- ask
+  traceM . show $ move
 
+  updated <- liftIO . atomically $ do
+    x <- readTVar gs
+
+    case M.lookup gid x of
+      Nothing -> return False
+      Just game -> do
+        modifyTVar gs
+          (M.adjust
+            ( over gameVersion (1 +)
+            . applyMove move
+            ) gid
+          )
+        return True
+
+  case updated of
+    False -> throwError $ err404 { errBody = "Game not found" }
+    True -> return ()
+
+
+applyMove (PlayTiles []) game = game
+applyMove (PlayTiles (t:ts)) game =
+  trace (show $ view 
+    (gameTiles . at (view tileId t))
+    game) $
+  set
+    (gameTiles . at (view tileId t) . _Just . tileLocation)
+    (view tileLocation t)
+    game
+    
 fillRacks :: Game -> Game
 fillRacks game =
   let ps = view gamePlayers game in
@@ -118,7 +149,10 @@ fillRacks game =
       -- TODO: handle no tiles
 
       case tile of
-        [x] -> over gameBag (drop 1) . over (gamePlayers . at (view playerId player) . _Just . playerRack) ((:) x) $ game
+        [x] ->
+            over gameBag (drop 1)
+          . over (gamePlayers . at (view playerId player) . _Just . playerRack) ((:) (set tileLocation (LocationRack $ view playerId player) x))
+          $ game
         _   -> game
 
 startGame :: GameId -> AppM ()

@@ -52,38 +52,23 @@ class Board extends React.Component {
       let boardData = []
       let tileData = []
       let tileId = 0
-      data.board.forEach(space => {
-        if (space.letter != null) {
-          tileId += 1;
-          tileData.push(
-            {
-              "id": tileId,
-              "letter": space.letter,
-              "score": space.score,
-              "location": ["board", [space.x, space.y]], "moveable": false
-            }
-          )
-        }
 
-        const {x, y, bonus} = space;
-
-        boardData.push({ x, y, bonus})
+      Object.keys(data.board).forEach(position => {
+        const [x, y] = position.split('-')
+        boardData.push({x, y, bonus: data.board[position]})
       })
 
-      const player = data.players.find(p => p.id == '1234') // TODO: Don't hard code playerId
+      // TODO: Index rack by player
+      let rackIndex = 0;
+      data.tiles.forEach(tile => {
+        if (tile.location.type === "rack") {
+          tile.location.index = rackIndex;
+          tile.moveable = true;
+          rackIndex += 1;
+        }
+      })
 
-      if (player != null) {
-        player.rack.forEach((tile, n) => {
-          tileId += 1;
-          tileData.push( {
-            "id": tileId,
-            "letter": tile.letter,
-            "score": tile.score,
-            "location": ["rack", n], "moveable": true
-          })
-        })
-      }
-
+      tileData = data.tiles
       if (!inited) {
         this.renderBoard(boardData, tileData)
         inited = true
@@ -147,6 +132,7 @@ class Board extends React.Component {
   }
 
   updateBoard(container, tileData) {
+    this.tileData = tileData
     let tiles = container.selectAll('.tile').data(tileData, d => d.id)
 
     const boardSize = tilesToPixels(gridWidth)
@@ -159,11 +145,13 @@ class Board extends React.Component {
     const containerColor = '#333'
 
     function tileLocation(loc) {
-      switch (loc[0]) {
+      switch (loc.type) {
+        case "bag":
+          return [0, 0];
         case "board":
-          return [tilesToPixels(loc[1][0]), tilesToPixels(loc[1][1])]
+          return [tilesToPixels(loc.x), tilesToPixels(loc.y)]
         case "rack":
-          return [tilesToPixels(loc[1]) + (containerWidth - rackWidth) / 2, boardSize + gutter + borderWidth]
+          return [tilesToPixels(loc.index) + (containerWidth - rackWidth) / 2, boardSize + gutter + borderWidth]
         default: console.log("Unknown location: " + loc)
       }
     }
@@ -210,10 +198,10 @@ class Board extends React.Component {
                 // Check if space is occupied
                 let existing = tileData.find(d => {
                   const l = d.location
-                  return l[0] === "board" && l[1][0] === xPos && l[1][1] === yPos
+                  return l.type === "board" && l.x === xPos && l.y === yPos
                 })
                 if (!existing) {
-                  d.location = ["board", [xPos, yPos]]
+                  d.location = {"type": "board", "x": xPos, "y": yPos}
                 }
               }
             }
@@ -266,9 +254,37 @@ class Board extends React.Component {
       .html(d => d.score)
   }
 
+  submitHandler = async () => {
+    const moveTiles = this.tileData.filter(tile => tile.moveable && tile.location.type == "board")
+
+    //console.log(moveTiles)
+    const move = {
+      type: "PlayTiles",
+      tiles: moveTiles
+    }
+
+    const uri = `http://localhost:8080/game/${this.props.gameId}/move`
+    try {
+      const response = await fetch(uri, {
+        method: 'POST',
+        body: JSON.stringify(move),
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      })
+    } catch(e) {
+      alert(e) // TODO
+    } finally {
+      //setLoading(false)
+    }
+  }
+
   render() {
     return (
-      <div ref={this.node}></div>
+      <div>
+        <button onClick={this.submitHandler}>Submit Move</button>
+        <div ref={this.node}></div>
+      </div>
     )
   }
 }
@@ -351,7 +367,7 @@ function Game({match}) {
   return <div>
     <button onClick={joinHandler}>Join Game</button>
     <button onClick={startHandler}>Start Game</button>
-    <Board showRack uri={`http://localhost:8080/game/${gameId}/player/${playerId}/subscribe`} />
+    <Board showRack gameId={gameId} uri={`http://localhost:8080/game/${gameId}/player/${playerId}/subscribe`} />
   </div>
 }
 

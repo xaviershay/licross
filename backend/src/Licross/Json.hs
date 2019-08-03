@@ -2,6 +2,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 -- ToJSON instances are always exported, don't export anything else.
 module Licross.Json ( ) where
@@ -30,9 +31,11 @@ instance FromJSON Tile where
   parseJSON = withObject "Tile" $ \v -> do
     letter <- v .: "letter"
     score <- v .: "score"
+    -- TODO: Redo these defaults after regen-ing template
     id <- v .:? "id" .!= 0
+    location <- v .:? "location" .!= LocationBag
 
-    return $ mkTile id letter score
+    return $ set tileLocation location (mkTile id letter score)
 
 instance ToJSON Space where
   toJSON = toJSON . view spaceBonus
@@ -42,8 +45,7 @@ instance ToJSON RedactedGame where
     -- TODO: Redact tiles in racks/bag
     object
       [ "board" .= view gameBoard x
-      , "tiles" .= view gameTiles x
-      , "bag" .= view gameBag x
+      , "tiles" .= ((M.elems $ view gameTiles x) <> view gameBag x <> (concatMap (view playerRack) (view gamePlayers x)))
       , "players" .= (M.elems $ view gamePlayers x)
       ]
 
@@ -116,4 +118,7 @@ instance ToJSONKey TileId
 
 instance FromJSON Move where
   parseJSON = withObject "Move" $ \v -> do
-    pure (PlayTiles mempty)
+    t <- v .: "type"
+
+    case t of
+      ("PlayTiles" :: T.Text) -> PlayTiles <$> v .: "tiles"
