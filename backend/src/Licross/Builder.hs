@@ -8,6 +8,9 @@ import qualified Data.Text.Lazy as LT
 import qualified Data.Aeson
 import qualified Data.Aeson.Text
 
+-- unordered-container
+import qualified Data.HashMap.Strict as M
+
 -- licross
 import Licross.Prelude
 import Licross.Types
@@ -22,7 +25,7 @@ fillBag spec =
   let expanded = concatMap expandSpec spec in
   let tiles = map buildTile $ zip expanded [1..] in
 
-  set gameBag tiles
+  set gameTiles (M.fromList $ map (\x -> (view tileId x, x)) tiles)
 
   where
     expandSpec (n, letter, score) = replicate n (letter, score)

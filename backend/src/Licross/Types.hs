@@ -31,12 +31,12 @@ module Licross.Types
   , emptyGame
   -- lens
   , playerId
-  , playerRack
+  --, playerRack
   , spaceBonus
   , spaceOccupant
   , gameBoard
   , gamePlayers
-  , gameBag
+  --, gameBag
   , gameVersion
   , gameTiles
   , showBoard
@@ -170,8 +170,8 @@ spaceBonus f parent =
   fmap (\x -> parent {_spaceBonus = x}) (f (_spaceBonus parent))
 
 data Player = Player
-  { _playerRack :: [Tile]
-  , _playerScore :: Int
+  { --_playerRack :: [Tile]
+    _playerScore :: Int
   , _playerName :: Text
   , _playerId :: PlayerId
   }
@@ -179,8 +179,8 @@ data Player = Player
   deriving Data.Aeson.ToJSON via StripPrefix "_player" Player
 
 mkPlayer id name = Player
-  { _playerRack = mempty
-  , _playerScore = 0
+  { --_playerRack = mempty
+    _playerScore = 0
   , _playerName = name
   , _playerId = id
   }
@@ -204,7 +204,7 @@ type TileMap = M.HashMap TileId Tile
 
 data Game = Game
   { _gameBoard :: Board
-  , _gameBag :: [Tile]
+  --, _gameBag :: [Tile]
   , _gamePlayers :: PlayerMap
   -- TODO: Store all tiles in here
   , _gameTiles :: TileMap
@@ -235,8 +235,8 @@ gameIdToText (GameId x) = x
 gameBoard :: Control.Lens.Lens' Game Board
 gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
 
-gameBag :: Control.Lens.Lens' Game [Tile]
-gameBag f parent = fmap (\x -> parent {_gameBag = x}) (f (_gameBag parent))
+--gameBag :: Control.Lens.Lens' Game [Tile]
+--gameBag f parent = fmap (\x -> parent {_gameBag = x}) (f (_gameBag parent))
 
 gamePlayers :: Control.Lens.Lens' Game PlayerMap
 gamePlayers f parent =
@@ -270,9 +270,9 @@ playerId :: Control.Lens.Lens' Player PlayerId
 playerId f parent =
   fmap (\x -> parent {_playerId = x}) (f (_playerId parent))
 
-playerRack :: Control.Lens.Lens' Player [Tile]
-playerRack f parent =
-  fmap (\x -> parent {_playerRack = x}) (f (_playerRack parent))
+--playerRack :: Control.Lens.Lens' Player [Tile]
+--playerRack f parent =
+--  fmap (\x -> parent {_playerRack = x}) (f (_playerRack parent))
 
 playerScore :: Control.Lens.Lens' Player Int
 playerScore f parent =
@@ -326,7 +326,7 @@ emptyGame =
     { _gameBoard =
         M.fromList
           [(mkPos x y, Space None Nothing) | x <- [0 .. 14], y <- [0 .. 14]]
-    , _gameBag = mempty
+    --, _gameBag = mempty
     , _gamePlayers = mempty
     , _gameTiles = mempty
     , _gameVersion = 0

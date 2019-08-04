@@ -120,15 +120,12 @@ postMove gid pid move = do
     True -> return ()
 
 
-applyMove (PlayTiles []) game = game
-applyMove (PlayTiles (t:ts)) game =
-  trace (show $ view 
-    (gameTiles . at (view tileId t))
-    game) $
+applyMove (PlayTiles []) = id
+applyMove (PlayTiles (t:ts)) =
   set
     (gameTiles . at (view tileId t) . _Just . tileLocation)
     (view tileLocation t)
-    game
+  . applyMove (PlayTiles ts)
     
 fillRacks :: Game -> Game
 fillRacks game =
@@ -136,22 +133,33 @@ fillRacks game =
   foldl fillRackFor game ps
 
   where
+    inPlayerRack player tile =
+      case view tileLocation tile of
+        LocationRack pid -> pid == view playerId player
+        _ -> False
+
     fillRackFor game player =
-      let rack = view playerRack player in
+      let rack = filter (inPlayerRack player) (M.elems . view gameTiles $ game) in
 
       foldl (moveTileFromBag player) game [1..(7 - length rack)]
 
+    inBag :: Tile -> Bool
+    inBag tile =
+      case view tileLocation tile of
+        LocationBag -> True
+        _ -> False
+
     moveTileFromBag player game n =
       -- TODO: Randomness
-      let tile = take 1 . view gameBag $ game in
-      let bag = drop 1 . view gameBag $ game in
+      let tile = take 1 . filter inBag . M.elems . view gameTiles $ game in
 
       -- TODO: handle no tiles
 
       case tile of
         [x] ->
-            over gameBag (drop 1)
-          . over (gamePlayers . at (view playerId player) . _Just . playerRack) ((:) (set tileLocation (LocationRack $ view playerId player) x))
+          set
+            (gameTiles . at (view tileId x) . _Just . tileLocation)
+            (LocationRack $ view playerId player)
           $ game
         _   -> game
 

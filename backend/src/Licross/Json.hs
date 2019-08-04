@@ -45,7 +45,7 @@ instance ToJSON RedactedGame where
     -- TODO: Redact tiles in racks/bag
     object
       [ "board" .= view gameBoard x
-      , "tiles" .= ((M.elems $ view gameTiles x) <> view gameBag x <> (concatMap (view playerRack) (view gamePlayers x)))
+      , "tiles" .= (M.elems $ view gameTiles x)
       , "players" .= (M.elems $ view gamePlayers x)
       ]
 
@@ -74,7 +74,7 @@ instance FromJSON Game where
 
     return
       . set gameBoard (M.fromList $ map (\(FlattenedSpace bonus x y) -> (mkPos x y, set spaceBonus bonus emptySpace)) boardSpec)
-      . set gameBag bag
+       . set gameTiles (M.fromList $ map (\x -> (view tileId x, x)) bag)
       $ emptyGame
 
     where
