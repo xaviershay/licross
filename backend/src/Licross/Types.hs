@@ -51,10 +51,11 @@ module Licross.Types
 
 -- aeson
 import           Data.Aeson
-import           Data.Aeson.Types (toJSONKeyText)
+import           Data.Aeson.Types (toJSONKeyText, Parser)
 
 -- base
 import           GHC.Generics         (Generic)
+import           Text.Read (readMaybe)
 
 -- text
 import           Data.Text            (Text (..))
@@ -87,6 +88,19 @@ instance ToJSONKey Position where
       showPosition (Position { xPos = x, yPos = y}) =
         T.pack (show x) <> "-" <> T.pack (show y)
 
+instance FromJSON Position where
+  parseJSON = fail "why are you here?"
+
+instance FromJSONKey Position where
+  fromJSONKey = FromJSONKeyTextParser parsePosition
+    where
+      parsePosition key = do
+        let (x, y) = T.breakOn "-" key
+
+        case mkPos <$> readMaybe (T.unpack x) <*> readMaybe (drop 1 $ T.unpack y) of
+          Just pos -> return pos
+          Nothing -> fail . T.unpack $ "Could not parse position: " <> x
+
 mkPos x y = Position {xPos = x, yPos = y}
 
 instance Hashable Position
@@ -118,9 +132,11 @@ instance FromJSON TileLocation where
     (t :: T.Text) <- v .: "type"
 
     case t of
+      "bag" -> return LocationBag
       "board" -> do
          pos <- Position <$> v .: "x" <*> v .: "y"
          return $ LocationBoard pos
+      _ -> fail . show $ "Unimplemented TileLocation type: " <> t
 
 data Tile = Tile
   { _tileLetter :: TileType

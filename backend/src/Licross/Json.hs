@@ -67,18 +67,27 @@ data TileNoId = TileNoId
 
 instance FromJSON Game where
   parseJSON = withObject "Game" $ \v -> do
-    bagNoIds <- v .: "bag"
-    boardSpec <- v .: "board"
-
-    let bag = map buildTile $ zip bagNoIds [1..]
+    tiles :: [Tile] <- v .: "tiles"
+    board :: M.HashMap Position Space <- v .: "board"
 
     return
-      . set gameBoard (M.fromList $ map (\(FlattenedSpace bonus x y) -> (mkPos x y, set spaceBonus bonus emptySpace)) boardSpec)
-       . set gameTiles (M.fromList $ map (\x -> (view tileId x, x)) bag)
+      . set gameBoard board
+       . set gameTiles (M.fromList $ map (\x -> (view tileId x, x)) tiles)
       $ emptyGame
 
-    where
-      buildTile (t, id) = mkTile id (_tileNoIdLetter t) (_tileNoIdScore t)
+instance FromJSON Space where
+  parseJSON = withText "Bonus" $ \v -> do
+    bonus <-
+      case v of
+        "none" -> return None
+        "dw" -> return $ WordMultiplier 2
+        "tw" -> return $ WordMultiplier 3
+        "dl" -> return $ LetterMultiplier 2
+        "tl" -> return $ LetterMultiplier 3
+        "anchor" -> return Anchor
+        _ -> fail . show $ "Unknown bonus type: " <> v
+
+    return . set spaceBonus bonus $ emptySpace
 
 --instance ToJSON FlattenSpace where
 --  toJSON (FlattenSpace (pos, space)) =
