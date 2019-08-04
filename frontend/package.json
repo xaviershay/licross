@@ -13,6 +13,7 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
+    "flow": "flow",
     "eject": "react-scripts eject"
   },
   "eslintConfig": {
@@ -29,5 +30,11 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/preset-flow": "^7.0.0",
+    "flow-bin": "^0.104.0"
   }
 }
