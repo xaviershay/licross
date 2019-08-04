@@ -4,6 +4,7 @@
 
 module Licross.Api
   ( runServer
+  , applyMove -- TODO: Move
   ) where
 
 import qualified Control.Concurrent
@@ -99,7 +100,6 @@ newGame = do
 postMove :: GameId -> Maybe PlayerId -> Move -> AppM ()
 postMove gid pid move = do
   State {games = gs} <- ask
-  traceM . show $ move
 
   updated <- liftIO . atomically $ do
     x <- readTVar gs
@@ -126,7 +126,7 @@ applyMove (PlayTiles (t:ts)) =
     (gameTiles . at (view tileId t) . _Just . tileLocation)
     (view tileLocation t)
   . applyMove (PlayTiles ts)
-    
+
 fillRacks :: Game -> Game
 fillRacks game =
   let ps = view gamePlayers game in

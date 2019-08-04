@@ -56,6 +56,7 @@ import           Data.Aeson.Types (toJSONKeyText, Parser)
 -- base
 import           GHC.Generics         (Generic)
 import           Text.Read (readMaybe)
+import           Data.Foldable (toList)
 
 -- text
 import           Data.Text            (Text (..))
@@ -89,7 +90,10 @@ instance ToJSONKey Position where
         T.pack (show x) <> "-" <> T.pack (show y)
 
 instance FromJSON Position where
-  parseJSON = fail "why are you here?"
+  parseJSON = withArray "Position" $ \v ->
+    case toList v of
+      [x, y] -> mkPos <$> parseJSON x <*> parseJSON y
+      _      -> fail "Invalid Position"
 
 instance FromJSONKey Position where
   fromJSONKey = FromJSONKeyTextParser parsePosition
@@ -133,9 +137,7 @@ instance FromJSON TileLocation where
 
     case t of
       "bag" -> return LocationBag
-      "board" -> do
-         pos <- Position <$> v .: "x" <*> v .: "y"
-         return $ LocationBoard pos
+      "board" -> LocationBoard <$> v .: "position"
       _ -> fail . show $ "Unimplemented TileLocation type: " <> t
 
 data Tile = Tile

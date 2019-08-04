@@ -19,6 +19,7 @@ import qualified Data.Text as T
 -- licross
 import Licross.Prelude
 import Licross.Types
+import Licross.Api
 
 instance Arbitrary Position where
   arbitrary = pure mkPos <*> arbitrary <*> arbitrary
@@ -65,29 +66,44 @@ test_positionsToList =
     -- TODO: , testProperty "is contiguous"
     ]
 
-extractLetters :: Board -> [[T.Text]]
-extractLetters board =
-   positionsToList . M.toList .
-   M.map (extractLetter . view spaceOccupant) $
-   board
+--extractLetters :: Board -> [[T.Text]]
+--extractLetters board =
+--   positionsToList . M.toList .
+--   M.map (extractLetter . view spaceOccupant) $
+--   board
 
-extractLetter :: Maybe PlacedTile -> T.Text
-extractLetter (Just (PlacedTile text _)) = text
-extractLetter Nothing = ""
+--extractLetter :: Maybe PlacedTile -> T.Text
+--extractLetter (Just (PlacedTile text _)) = text
+--extractLetter Nothing = ""
+
+extractLetter :: Game -> Position -> T.Text
+extractLetter game position =
+  case filter (\x -> view tileLocation x == LocationBoard position) $ (M.elems $ view gameTiles game) of
+    [x] -> toText $ view tileLetter x
+    _ -> ""
+
+  where
+    toText (Letter x) = x
+    toText Blank = ""
 
 test_PlayTiles =
   testGroup
     "Move: PlayTiles"
     [ testCase "adds tiles to board" $
-      let expected = [["A", "B", ""]]
+      let expected = ["A", "B", ""]
        in let actual =
                 applyMove
                   (PlayTiles
-                     (PlayerId 1)
-                     (M.fromList
-                        [ (mkPos 0 0, mkPlacedTile "A" 1)
-                        , (mkPos 1 0, mkPlacedTile "B" 3)
-                        ])) $
-                mkGame [[None, None, None]]
-           in expected @=? (extractLetters $ view gameBoard actual)
+                        [ set tileLocation (LocationBoard $ mkPos 0 0) $ mkTile 1 "A" 0
+                        , set tileLocation (LocationBoard $ mkPos 1 0) $ mkTile 2 "B" 0
+                        ]) $
+                set
+                  gameTiles
+                  (M.fromList . map (\x -> (view tileId x, x)) $
+                    [ mkTile 1 "A" 0
+                    , mkTile 2 "B" 0
+                    ]
+                  )
+                $ mkGame [[None, None, None]]
+           in expected @=? (map (extractLetter actual) [mkPos 0 0, mkPos 1 0, mkPos 2 0])
     ]

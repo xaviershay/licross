@@ -149,7 +149,7 @@ class Board extends React.Component {
         case "bag":
           return [0, 0];
         case "board":
-          return [tilesToPixels(loc.x), tilesToPixels(loc.y)]
+          return [tilesToPixels(loc.position[0]), tilesToPixels(loc.position[1])]
         case "rack":
           return [tilesToPixels(loc.index) + (containerWidth - rackWidth) / 2, boardSize + gutter + borderWidth]
         default: console.log("Unknown location: " + loc)
@@ -161,6 +161,9 @@ class Board extends React.Component {
     let transformF = d => {
       const x = tileLocation(d.location)[0]
       const y = tileLocation(d.location)[1]
+      if (!(x >= 0)) {
+        console.log(d)
+      }
       return "translate(" + x + "," + y + ")"
     }
     let tilesEnter = tiles.enter()
@@ -201,7 +204,7 @@ class Board extends React.Component {
                   return l.type === "board" && l.x === xPos && l.y === yPos
                 })
                 if (!existing) {
-                  d.location = {"type": "board", "x": xPos, "y": yPos}
+                  d.location = {"type": "board", "position": [xPos, yPos]}
                 }
               }
             }
