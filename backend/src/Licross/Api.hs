@@ -21,6 +21,7 @@ import Network.Wai.Middleware.Cors -- wai-cors
 import Network.Wai.Middleware.RequestLogger -- wai-extra
 import Servant -- servant-server
 import Servant.RawM (RawM)
+import qualified Servant.RawM.Server
 
 import Licross.FakeData
 import Licross.Json
@@ -66,7 +67,7 @@ newGame = do
 postMove :: GameId -> PlayerId -> Move -> AppM ()
 postMove = error ""
 
-subscribeGame :: GameId -> PlayerId -> AppM Application
+subscribeGame :: GameId -> PlayerId -> AppM Network.Wai.Application
 subscribeGame gid pid = do
   State {games = gs} <- ask
   liftIO $ do
