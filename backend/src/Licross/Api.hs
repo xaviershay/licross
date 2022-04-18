@@ -25,6 +25,7 @@ import Network.Wai.Middleware.RequestLogger -- wai-extra
 import Network.Wai.EventSource.EventStream (eventToBuilder)
 import Servant -- servant-server
 import Servant.RawM (RawM)
+import Servant.RawM.Server
 
 import Licross.FakeData
 import Licross.Json
