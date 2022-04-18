@@ -9,7 +9,10 @@ module Licross.Types
   , PlacedTile(..)
   , PlayerId(..)
   , Move(..)
+  , MoveError(..)
   , Bonus(..)
+  , Rack
+  , Tile
   , RedactedGame(..)
   , Space
   , GameId
@@ -19,8 +22,10 @@ module Licross.Types
   , gameIdToText
   , mkPos
   , mkPlacedTile
+  , mkTile
   , emptySpace
   , emptyGame
+  , emptyPlayer
   -- lens
   , spaceBonus
   , spaceOccupant
@@ -29,6 +34,7 @@ module Licross.Types
   , gameBag
   , gameT
   , showBoard
+  , playerRack
   -- accessors
   , xPos
   , yPos
@@ -103,15 +109,19 @@ spaceBonus :: Control.Lens.Lens' Space Bonus
 spaceBonus f parent =
   fmap (\x -> parent {_spaceBonus = x}) (f (_spaceBonus parent))
 
+type Rack = [Tile]
+
 data Player = Player
-  { playerRack :: [Tile]
-  , playerScore :: Integer
-  , playerName :: Text
+  { _playerRack :: Rack
+  , _playerScore :: Integer
+  , _playerName :: Text
   } deriving (Show)
 
 newtype PlayerId =
   PlayerId Integer
   deriving (Show, Eq, Generic)
+
+instance Hashable PlayerId
 
 -- TODO: Need to move PlayerId outside this type, so that API FromJSON etc can
 -- work nicely.
@@ -119,12 +129,17 @@ data Move =
   PlayTiles PlayerId
             (M.HashMap Position PlacedTile)
 
+data MoveError =
+    TilesNotInRack
+  | InvalidPlacement
+  deriving (Show, Eq)
+
 type Board = M.HashMap Position Space
 
 data Game = Game
   { _gameBoard :: Board
   , _gameBag :: [Tile]
-  , _gamePlayers :: [Player]
+  , _gamePlayers :: M.HashMap PlayerId Player
   , _gameT :: Int
   } deriving (Show)
 
@@ -155,9 +170,12 @@ gameBoard f board = fmap (\x -> board {_gameBoard = x}) (f (_gameBoard board))
 gameBag :: Control.Lens.Lens' Game [Tile]
 gameBag f parent = fmap (\x -> parent {_gameBag = x}) (f (_gameBag parent))
 
-gamePlayers :: Control.Lens.Lens' Game [Player]
+gamePlayers :: Control.Lens.Lens' Game (M.HashMap PlayerId Player)
 gamePlayers f parent =
   fmap (\x -> parent {_gamePlayers = x}) (f (_gamePlayers parent))
+
+playerRack :: Control.Lens.Lens' Player Rack
+playerRack f parent = fmap (\x -> parent {_playerRack = x}) (f (_playerRack parent))
 
 gameT :: Control.Lens.Lens' Game Int
 gameT f parent =
@@ -212,5 +230,15 @@ emptyGame =
     , _gameT = 1
     }
 
+emptyPlayer =
+  Player
+    { _playerRack = mempty
+    , _playerScore = 0
+    , _playerName = mempty
+    }
+
+mkTile letter score = 
+  Tile {tileText = Letter letter, tilePoints = score}
+
 mkPlacedTile letter score =
-  PlacedTile letter (Tile {tileText = Letter letter, tilePoints = score})
+  PlacedTile letter (mkTile letter score)

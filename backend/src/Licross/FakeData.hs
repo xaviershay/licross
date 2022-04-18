@@ -13,14 +13,37 @@ bonusFor 8 0 = WordMultiplier 3
 bonusFor 8 8 = WordMultiplier 3
 bonusFor _ _ = None
 
-applyMove :: Move -> Game -> Game
+applyMove :: Move -> Game -> Either MoveError Game
 applyMove (PlayTiles pid tiles) = playTiles pid tiles
 
-playTiles :: PlayerId -> M.HashMap Position PlacedTile -> Game -> Game
-playTiles pid tiles game = foldl playTile game (M.toList tiles)
+-- TODO: This is just a horrendously inefficient implementation
+findAndDelete :: Eq a => a -> [a] -> (Maybe a, [a])
+findAndDelete x xs = findAndDelete' x [] xs
+
+findAndDelete' _ seen [] = (Nothing, seen)
+findAndDelete' x seen (y:ys)
+  | x == y = (Just y, seen <> ys)
+findAndDelete' x seen (y:ys)
+  | x /= y = findAndDelete' x (seen <> [y]) ys
+
+playTiles ::
+     PlayerId -> M.HashMap Position PlacedTile -> Game -> Either MoveError Game
+playTiles pid tiles game = foldl playTile (Right game) (M.toList tiles)
   where
-    playTile game (pos, tile) =
-      set (gameBoard . at pos . _Just . spaceOccupant) (Just tile) game
+    playTile (Left x) _ = Left x
+    playTile (Right game) (pos, placedTile) =
+      let PlacedTile _ tile = placedTile
+          (rackTile, rack) =
+            findAndDelete
+              tile
+              (view (gamePlayers . at pid . _Just . playerRack) game)
+       in case rackTile of
+            Nothing -> Left TilesNotInRack
+            Just _ ->
+              Right $
+              set (gamePlayers . at pid . _Just . playerRack) rack .
+              set (gameBoard . at pos . _Just . spaceOccupant) (Just placedTile) $
+              game
 
 setBonus :: Bonus -> Position -> Game -> Game
 setBonus bonus pos = set (gameBoard . at pos . _Just . spaceBonus) bonus
@@ -28,17 +51,23 @@ setBonus bonus pos = set (gameBoard . at pos . _Just . spaceBonus) bonus
 -- A fake game board showing some welcome text.
 titleGame :: Game
 titleGame =
-  applyMove -- TODO: Quick hack to get tiles on board, won't work with validation.
-    (PlayTiles
-       (PlayerId 1)
-       (mkWord (root <> mkPos 1 0) "WELCOME" vertical <>
-        mkWord (root <> mkPos 0 4) "TO" horizontal <>
-        mkWord (root <> mkPos 1 2) "LICROSS" horizontal <>
-        mkWord (root <> mkPos 5 1) "WORD" vertical <>
-        mkWord (root <> mkPos 7 (-2)) "GAMES" vertical)) .
-  foldl (\game (bonus, pos) -> setBonus bonus pos game) emptyGame $
-  bonuses
+  let x =
+        foldl
+          (\game (pos, tile) -> setTile tile pos game)
+          gameWithBonuses
+          (M.toList $
+           mkWord (root <> mkPos 1 0) "WELCOME" vertical <>
+           mkWord (root <> mkPos 0 4) "TO" horizontal <>
+           mkWord (root <> mkPos 1 2) "LICROSS" horizontal <>
+           mkWord (root <> mkPos 5 1) "WORD" vertical <>
+           mkWord (root <> mkPos 7 (-2)) "GAMES" vertical)
+      gameWithBonuses =
+        foldl (\game (bonus, pos) -> setBonus bonus pos game) emptyGame $
+        bonuses
+   in x
   where
+    setTile placedTile pos =
+      set (gameBoard . at pos . _Just . spaceOccupant) (Just placedTile)
     bonuses =
       concat
         [ f (WordMultiplier 3) 0 3
