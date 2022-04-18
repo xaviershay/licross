@@ -1,8 +1,10 @@
 // @flow
 
 import React, { useState } from "react";
-import { BrowserRouter as Router, Route, Link } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
 import * as d3 from "d3";
+
+import { useParams } from "react-router-dom";
 
 import "./App.css";
 
@@ -392,9 +394,11 @@ function NewGame() {
   );
 }
 
-function Game({ match }) {
+function Game() {
   //const [_joining, setJoining] = useState(false);
-  const gameId = match.params.id;
+  let params = useParams();
+
+  const gameId = params.id;
   const playerId = "1234";
 
   const joinHandler = async () => {
@@ -447,7 +451,7 @@ function Game({ match }) {
 
 function App() {
   return (
-    <Router>
+    <BrowserRouter>
       <ul>
         <li>
           <Link to="/">Home</Link>
@@ -459,11 +463,13 @@ function App() {
           <Link to="/example">Example</Link>
         </li>
       </ul>
-      <Route path="/" exact component={Home} />
-      <Route path="/new-game" exact component={NewGame} />
-      <Route path="/game/:id" exact component={Game} />
-      <Route path="/example" component={Example} />
-    </Router>
+      <Routes>
+        <Route path="/" exact element={<Home />} />
+        <Route path="/new-game" exact element={<NewGame />} />
+        <Route path="/game/:id" exact element={<Game />} />
+        <Route path="/example" element={<Example />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
