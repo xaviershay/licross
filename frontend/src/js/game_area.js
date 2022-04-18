@@ -17,11 +17,16 @@ class GameArea extends HTMLElement {
 
   set source(x) {
     console.log("set source", x)
+
     if (this._source) {
       this._source.close()
     }
 
     this._source = new EventSource("http://localhost:8080" + x)
+    var source = this._source;
+    this._source.addEventListener('not-found', function(message) {
+      source.close();
+    })
     this._source.addEventListener('snapshot', function(message) {
       let data = JSON.parse(message.data)
       boardData = []

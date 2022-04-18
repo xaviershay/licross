@@ -1,19 +1,29 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Licross.Api
   ( runServer
   ) where
 
 import qualified Control.Concurrent
-import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar) -- stm
-import Control.Monad (forever)
+import Control.Concurrent.STM
+  ( TVar
+  , atomically
+  , check
+  , modifyTVar
+  , newTVar
+  , readTVar
+  , writeTVar
+  ) -- stm
+import Control.Monad (forever, join)
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
 import qualified Data.Aeson
 import qualified Data.Binary.Builder
 import qualified Data.HashMap.Strict as M -- unordered-containers
+import Debug.Trace
 import Network.HTTP.Types (status200, status404) -- http-types
 import Network.Wai -- wai
 import qualified Network.Wai.EventSource -- wai-extra
@@ -84,24 +94,40 @@ postMove = error ""
 
 subscribeGame :: GameId -> PlayerId -> AppM Network.Wai.Application
 subscribeGame gid pid = do
+  currentTVar <- liftIO $ atomically $ newTVar 0
   State {games = gs} <- ask
-  liftIO $ do
-    maybeGame <- atomically $ readTVar gs >>= (return . M.lookup gid)
-    let game = emptyGame
-    return $
-      case maybeGame of
-        Nothing -> \_ respond -> respond $ responseLBS status404 [] ""
-        Just game ->
-          Network.Wai.EventSource.eventSourceAppIO $ do
-            let x =
+  return $ Network.Wai.EventSource.eventStreamAppRaw (handle gs currentTVar)
+  where
+    handle gs currentTVar emit flush = do
+      join $
+        atomically $ do
+          maybeGame <- readTVar gs >>= (return . M.lookup gid)
+          case maybeGame of
+            Nothing ->
+              return $ do
+                emit $
+                  Network.Wai.EventSource.ServerEvent
+                    (Just "not-found")
+                    Nothing
+                    [ Data.Binary.Builder.fromLazyByteString
+                        (Data.Aeson.encode ())
+                    ]
+                emit Network.Wai.EventSource.CloseEvent
+                flush
+            Just gamex -> do
+              currentT <- readTVar currentTVar
+              check (view gameT gamex > currentT)
+              writeTVar currentTVar (view gameT gamex)
+              return $ do
+                emit $
                   Network.Wai.EventSource.ServerEvent
                     (Just "snapshot")
                     Nothing
                     [ Data.Binary.Builder.fromLazyByteString
-                        (Data.Aeson.encode $ RedactedGame Nothing game)
+                        (Data.Aeson.encode $ RedactedGame Nothing gamex)
                     ]
-            Control.Concurrent.threadDelay 1000000
-            return x
+                flush
+                handle gs currentTVar emit flush
 
 server :: Servant.ServerT GameAPI AppM
 server =
