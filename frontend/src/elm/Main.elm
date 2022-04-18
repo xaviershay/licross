@@ -132,6 +132,7 @@ view model =
             , body =
                 [ Html.node "licross-game-area"
                     [ Html.Attributes.property "gameId" (Json.Encode.int 12345)
+                    , Html.Attributes.property "source" (Json.Encode.string <| "/example")
                     , Html.Events.on "submitMove" <| Json.Decode.map MoveSubmit <| Json.Decode.string
                     ]
                     []

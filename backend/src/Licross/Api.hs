@@ -8,6 +8,7 @@ module Licross.Api
 
 import qualified Control.Concurrent
 import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar) -- stm
+import Control.Monad (forever)
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
 import qualified Data.Aeson
@@ -20,7 +21,7 @@ import Network.Wai.Handler.Warp -- warp
 import Network.Wai.Middleware.Cors -- wai-cors
 import Network.Wai.Middleware.RequestLogger -- wai-extra
 import Servant -- servant-server
-import Servant.RawM (RawM)
+import Servant.RawM (RawM')
 import qualified Servant.RawM.Server
 
 import Licross.FakeData
@@ -38,11 +39,11 @@ instance Servant.FromHttpApiData PlayerId where
 -- revisit, but for now was creating too much conceptual overhead for little
 -- benefit.
 type GameAPI
-   = "example" :> Get '[ JSON] RedactedGame
+   = "example" :> Subscription RedactedGame
      :<|> "game" :> Post '[ JSON] GameId
      :<|> "game" :> Capture "id" GameId :> "join" :> Post '[ JSON] PlayerId
      :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "move" :> ReqBody '[ JSON] Move :> Post '[ JSON] ()
-     :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> RawM
+     :<|> "game" :> Capture "id" GameId :> "player" :> Capture "playerId" PlayerId :> "subscribe" :> Subscription RedactedGame
 
 newtype State = State
   { games :: TVar (M.HashMap GameId Game)
@@ -50,8 +51,22 @@ newtype State = State
 
 type AppM = ReaderT State Servant.Handler
 
-example :: AppM RedactedGame
-example = return $ RedactedGame Nothing titleGame
+type Subscription a = RawM' a
+
+subscribeExample :: AppM Network.Wai.Application
+subscribeExample = do
+  return $ Network.Wai.EventSource.eventStreamAppRaw handle
+  where
+    handle emit flush = do
+      emit $
+        Network.Wai.EventSource.ServerEvent
+          (Just "snapshot")
+          Nothing
+          [ Data.Binary.Builder.fromLazyByteString
+              (Data.Aeson.encode $ RedactedGame Nothing titleGame)
+          ]
+      flush
+      forever $ Control.Concurrent.threadDelay 100000000
 
 joinGame :: GameId -> AppM PlayerId
 joinGame = error ""
@@ -89,7 +104,8 @@ subscribeGame gid pid = do
             return x
 
 server :: Servant.ServerT GameAPI AppM
-server = example :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
+server =
+  subscribeExample :<|> newGame :<|> joinGame :<|> postMove :<|> subscribeGame
 
 gameAPI :: Servant.Proxy GameAPI
 gameAPI = Servant.Proxy
