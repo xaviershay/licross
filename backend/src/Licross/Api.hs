@@ -86,6 +86,8 @@ joinGame gid (Just pid) = do
         modifyTVar gs (M.adjust (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer pid "Unknown"))) gid)
         return True
 
+    -- TODO: persist game state to database
+
   case updated of
     False -> throwError $ err404 { errBody = "Game not found" }
     True -> return ()
@@ -96,6 +98,7 @@ newGame = do
   liftIO $ do
     id <- newGameId
     atomically $ modifyTVar gs (M.insert id template)
+    -- TODO: persist game to database, include region
     return id
 
 postMove :: GameId -> Maybe PlayerId -> Move -> AppM ()
@@ -116,6 +119,7 @@ postMove gid pid move = do
           )
         return True
 
+  -- TODO: persist move to database async (change type of updated to Maybe Game)
   case updated of
     False -> throwError $ err404 { errBody = "Game not found" }
     True -> return ()
@@ -214,9 +218,7 @@ subscribeGame gid pid = do
                           check $ view gameVersion game >= lastVersion
                           return $ Just game
 
-      let games = atomically $ do
-                    x <- readTVar gs
-                    return $ M.keys x
+      -- TODO: Try rehydrating game if Nothing
       maybeGame <- action
 
       case maybeGame of

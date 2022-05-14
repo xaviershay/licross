@@ -25,7 +25,7 @@ because of any real or expected constraints.
 * Deploy using Fly.io to handle region routing (among many other things).
 
 
-Persistence options:
+### Persistence
 
 * In-process sqlite, litestream backup.
   * This solves for accepting writes locally, and should also be fast enough
@@ -71,6 +71,20 @@ Persistence options:
 Doesn't look like anyone is deploying haskell to fly.io yet, so will need to
 make our own buildpack.
 
+
+#### Schema
+
+Can either 3NF or store a bag of data per game (AESON serialize?)
+
+Bag of data easier to start with: can do last write wins with existing
+gameVersion, and writes are async so update perf doesn't matter much. All
+interaction with game done in-memory.
+
+Potentially migrate to 3NF in future for either extra write perf (seems
+unlikely) or to enable analytics ("most popular word"). Added complexity is
+potential for desync between incremental in-memory and SQL updates. Can
+mitigate this by having "actions" then tests (inc. property) to ensure that
+paths all form consistent states.
 
 ### Routing Options
 
