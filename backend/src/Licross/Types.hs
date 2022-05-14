@@ -229,7 +229,7 @@ data Game = Game
   -- TODO: Store all tiles in here
   , _gameTiles :: TileMap
   , _gameVersion :: Int
-  } deriving (Show, Eq)
+  } deriving (Show, Eq, Generic)
 
 -- A redacted type if effectively a newtype that allows for different JSON
 -- representations of an object to be shown to different players/observers.

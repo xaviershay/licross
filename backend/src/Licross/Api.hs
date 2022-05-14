@@ -13,11 +13,13 @@
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Licross.Api
   ( runServer
   , applyMove -- TODO: Move
   , testDb
+  , testDbInsert
   ) where
 
 import qualified Control.Concurrent
@@ -29,6 +31,7 @@ import qualified Data.Aeson
 import qualified Data.Binary.Builder
 import qualified Data.HashMap.Strict as M -- unordered-containers
 import Data.IORef
+import Data.Maybe (fromJust)
 import Network.HTTP.Types (status200, status404, hContentType) -- http-types
 import Network.Wai -- wai
 import qualified Network.Wai.EventSource -- wai-extra
@@ -57,9 +60,10 @@ import Database.Beam.Postgres
 import Data.Text (Text)
 import Database.PostgreSQL.Simple
 import GHC.Int (Int32(..))
+import Database.Beam.Backend.SQL
 
 data GameRecordT f
-    = GameRecordT
+    = GameRecord
     { _gameRecordId      :: C f GameId
     , _gameRecordRegion  :: C f Text
     , _gameRecordVersion :: C f Int32
@@ -74,9 +78,9 @@ deriving instance Eq GameRecord
 instance Beamable GameRecordT
 
 instance Table GameRecordT where
-   data PrimaryKey GameRecordT f = GameRecord (C f GameId)
+   data PrimaryKey GameRecordT f = GameRecordId (C f GameId)
      deriving (Generic, Beamable)
-   primaryKey = GameRecord . _gameRecordId
+   primaryKey = GameRecordId . _gameRecordId
 
 data LicrossDb f = LicrossDb
                       { _licrossGames :: f (TableEntity GameRecordT) }
@@ -98,8 +102,24 @@ licrossDb = defaultDbSettings `withDbModification`
 instance FromBackendRow Postgres GameId where
   fromBackendRow = GameId <$> fromBackendRow
 
+instance HasSqlValueSyntax be Text => HasSqlValueSyntax be GameId where
+  sqlValueSyntax (GameId x) = sqlValueSyntax x
+
 instance FromBackendRow Postgres Game where
-  fromBackendRow = (\(json :: Text) -> emptyGame) <$> fromBackendRow
+  fromBackendRow = (\(PgJSONB g) -> g) <$> fromBackendRow
+
+instance HasSqlValueSyntax be (PgJSONB Game) => HasSqlValueSyntax be Game where
+  sqlValueSyntax x = sqlValueSyntax (PgJSONB x)
+
+testDbInsert = do
+  conn <- connectPostgreSQL "postgres:///licross_development"
+
+  runBeamPostgresDebug putStrLn conn $ do
+    runInsert $
+      insert (_licrossGames licrossDb) $
+        insertValues [ testRecord ]
+
+testRecord = GameRecord @Identity (GameId "abcde") "dev" 2 emptyGame
 
 testDb = do
   conn <- connectPostgreSQL "postgres:///licross_development"

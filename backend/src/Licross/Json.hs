@@ -3,6 +3,8 @@
 {-# LANGUAGE DerivingVia #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE DeriveAnyClass #-}
 
 -- ToJSON instances are always exported, don't export anything else.
 module Licross.Json ( ) where
@@ -49,6 +51,15 @@ instance ToJSON RedactedGame where
       , "players" .= (M.elems $ view gamePlayers x)
       ]
 
+instance ToJSON Game where
+  toJSON x =
+    object
+      [ "board" .= view gameBoard x
+      , "tiles" .= (M.elems $ view gameTiles x)
+      , "players" .= (M.elems $ view gamePlayers x)
+      , "version" .= view gameVersion x
+      ]
+
 data FlattenedSpace = FlattenedSpace Bonus Integer Integer
 
 instance FromJSON FlattenedSpace where
@@ -69,10 +80,12 @@ instance FromJSON Game where
   parseJSON = withObject "Game" $ \v -> do
     tiles :: [Tile] <- v .: "tiles"
     board :: M.HashMap Position Space <- v .: "board"
+    version :: Int <- v .: "version"
 
     return
       . set gameBoard board
        . set gameTiles (M.fromList $ map (\x -> (view tileId x, x)) tiles)
+       . set gameVersion version
       $ emptyGame
 
 instance FromJSON Space where
