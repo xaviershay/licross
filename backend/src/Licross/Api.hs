@@ -190,13 +190,23 @@ joinGame gid (Just pid) = do
     False -> throwError $ err404 { errBody = "Game not found" }
     True -> return ()
 
+-- TODO: Region
+toRecord gid g = GameRecord @Identity gid "dev" (view gameVersion g) g
+
 newGame :: AppM GameId
 newGame = do
   State {games = gs, templateGame = template} <- ask
   liftIO $ do
     id <- newGameId
     atomically $ modifyTVar gs (M.insert id template)
-    -- TODO: persist game to database, include region
+
+    conn <- connectPostgreSQL "postgres:///licross_development"
+
+    runBeamPostgresDebug putStrLn conn $ do
+      runInsert $
+        insert (_licrossGames licrossDb) $
+          insertValues [ toRecord id template ]
+
     return id
 
 postMove :: GameId -> Maybe PlayerId -> Move -> AppM ()
@@ -305,7 +315,7 @@ subscribeGame gid pid = do
   return $ eventStreamIO (handle gs 0)
 
   where
-    handle :: TVar (M.HashMap GameId Game) -> Int -> (Network.Wai.EventSource.ServerEvent -> IO ()) -> IO ()
+    handle :: TVar (M.HashMap GameId Game) -> Int32 -> (Network.Wai.EventSource.ServerEvent -> IO ()) -> IO ()
     handle gs lastVersion emit = do
       let action = atomically $ do
                       x <- readTVar gs

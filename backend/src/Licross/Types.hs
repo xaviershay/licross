@@ -56,6 +56,7 @@ import           Data.Aeson.Types (toJSONKeyText, Parser)
 
 -- base
 import           GHC.Generics         (Generic)
+import           GHC.Int (Int32(..))
 import           Text.Read (readMaybe)
 import           Data.Foldable (toList)
 
@@ -228,7 +229,7 @@ data Game = Game
   , _gamePlayers :: PlayerMap
   -- TODO: Store all tiles in here
   , _gameTiles :: TileMap
-  , _gameVersion :: Int
+  , _gameVersion :: Int32
   } deriving (Show, Eq, Generic)
 
 -- A redacted type if effectively a newtype that allows for different JSON
@@ -266,7 +267,7 @@ gameTiles :: Control.Lens.Lens' Game TileMap
 gameTiles f parent =
   fmap (\x -> parent {_gameTiles = x}) (f (_gameTiles parent))
 
-gameVersion :: Control.Lens.Lens' Game Int
+gameVersion :: Control.Lens.Lens' Game Int32
 gameVersion f parent =
   fmap (\x -> parent {_gameVersion = x}) (f (_gameVersion parent))
 

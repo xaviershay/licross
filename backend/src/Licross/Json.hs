@@ -11,6 +11,7 @@ module Licross.Json ( ) where
 
 -- base
 import GHC.Generics
+import GHC.Int (Int32(..))
 
 -- aeson
 import           Data.Aeson
@@ -80,7 +81,7 @@ instance FromJSON Game where
   parseJSON = withObject "Game" $ \v -> do
     tiles :: [Tile] <- v .: "tiles"
     board :: M.HashMap Position Space <- v .: "board"
-    version :: Int <- v .: "version"
+    version :: Int32 <- v .: "version"
 
     return
       . set gameBoard board
