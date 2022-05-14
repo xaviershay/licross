@@ -3,3 +3,4 @@
 * [DONE] AESON serialization for Game data type
 * non-async persistence
 * async persistence
+* timestamps in DB

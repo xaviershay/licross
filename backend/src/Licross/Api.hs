@@ -32,6 +32,7 @@ import qualified Data.Binary.Builder
 import qualified Data.HashMap.Strict as M -- unordered-containers
 import Data.IORef
 import Data.Maybe (fromJust)
+import Data.Pool
 import Network.HTTP.Types (status200, status404, hContentType) -- http-types
 import Network.Wai -- wai
 import qualified Network.Wai.EventSource -- wai-extra
@@ -151,6 +152,7 @@ type GameAPI
 data State = State
   { games :: TVar (M.HashMap GameId Game)
   , templateGame :: Game
+  , conns :: Pool Connection
   }
 
 type AppM = ReaderT State Servant.Handler
@@ -195,17 +197,16 @@ toRecord gid g = GameRecord @Identity gid "dev" (view gameVersion g) g
 
 newGame :: AppM GameId
 newGame = do
-  State {games = gs, templateGame = template} <- ask
+  State {games = gs, templateGame = template, conns = pool} <- ask
   liftIO $ do
     id <- newGameId
     atomically $ modifyTVar gs (M.insert id template)
 
-    conn <- connectPostgreSQL "postgres:///licross_development"
-
-    runBeamPostgresDebug putStrLn conn $ do
-      runInsert $
-        insert (_licrossGames licrossDb) $
-          insertValues [ toRecord id template ]
+    withResource pool $ \conn ->
+      runBeamPostgresDebug putStrLn conn $ do
+        runInsert $
+          insert (_licrossGames licrossDb) $
+            insertValues [ toRecord id template ]
 
     return id
 
@@ -365,5 +366,16 @@ app s =
 runServer :: Int -> Game -> IO ()
 runServer port templateGame = do
   tvar <- atomically $ newTVar mempty
-  let initialState = State tvar templateGame
+  let connStr = "postgres:///licross_development"
+  pool <- createPool
+            (connectPostgreSQL connStr)
+            close
+            1 -- stripes
+            60 -- unused connections are kept open for a minute
+            10 -- max. 10 connections open per stripe
+  let initialState = State
+                      { games = tvar
+                      , templateGame = templateGame
+                      , conns = pool
+                      }
   Network.Wai.Handler.Warp.run port (app initialState)
