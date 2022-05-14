@@ -22,10 +22,13 @@ description:         Please see the README on GitHub at <https://github.com/xavi
 dependencies:
 - base >= 4.7 && < 5
 - aeson
+- beam-core
+- beam-postgres
 - binary
 - hashable
 - http-types
 - lens
+- postgresql-simple
 - mtl
 - random
 - servant-server

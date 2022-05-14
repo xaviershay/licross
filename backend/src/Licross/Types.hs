@@ -3,6 +3,7 @@
 {-# LANGUAGE DerivingVia       #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Licross.Types
   -- Types
@@ -14,7 +15,7 @@ module Licross.Types
   , Bonus(..)
   , RedactedGame(..)
   , Space
-  , GameId
+  , GameId(..)
   , Tile(..)
   , TileId(..)
   , TileType(..)
@@ -195,6 +196,7 @@ data Player = Player
   }
   deriving stock (Show, Generic)
   deriving Data.Aeson.ToJSON via StripPrefix "_player" Player
+  deriving Eq
 
 mkPlayer id name = Player
   { --_playerRack = mempty
@@ -227,7 +229,7 @@ data Game = Game
   -- TODO: Store all tiles in here
   , _gameTiles :: TileMap
   , _gameVersion :: Int
-  } deriving (Show)
+  } deriving (Show, Eq)
 
 -- A redacted type if effectively a newtype that allows for different JSON
 -- representations of an object to be shown to different players/observers.

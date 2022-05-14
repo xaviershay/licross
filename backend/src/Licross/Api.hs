@@ -2,9 +2,22 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
 
+{-# LANGUAGE StandaloneDeriving #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeSynonymInstances #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE GADTs #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Licross.Api
   ( runServer
   , applyMove -- TODO: Move
+  , testDb
   ) where
 
 import qualified Control.Concurrent
@@ -32,6 +45,71 @@ import Licross.Json
 import Licross.Prelude
 import Licross.Types
 
+
+
+
+
+
+-- TODO: Extract to more appropriate module once we know what we're doing
+
+import Database.Beam hiding (set)
+import Database.Beam.Postgres
+import Data.Text (Text)
+import Database.PostgreSQL.Simple
+import GHC.Int (Int32(..))
+
+data GameRecordT f
+    = GameRecordT
+    { _gameRecordId      :: C f GameId
+    , _gameRecordRegion  :: C f Text
+    , _gameRecordVersion :: C f Int32
+    , _gameRecordData    :: C f Game }
+    deriving Generic
+
+type GameRecord = GameRecordT Identity
+type GameRecordId = PrimaryKey GameRecordT Identity
+
+deriving instance Show GameRecord
+deriving instance Eq GameRecord
+instance Beamable GameRecordT
+
+instance Table GameRecordT where
+   data PrimaryKey GameRecordT f = GameRecord (C f GameId)
+     deriving (Generic, Beamable)
+   primaryKey = GameRecord . _gameRecordId
+
+data LicrossDb f = LicrossDb
+                      { _licrossGames :: f (TableEntity GameRecordT) }
+                        deriving (Generic, Database be)
+
+licrossDb :: DatabaseSettings be LicrossDb
+licrossDb = defaultDbSettings `withDbModification`
+              dbModification {
+                _licrossGames =
+                  modifyTableFields
+                    tableModification {
+                      _gameRecordId = "id"
+                      , _gameRecordRegion = "region"
+                      , _gameRecordVersion = "version"
+                      , _gameRecordData = "data"
+                    }
+              }
+
+instance FromBackendRow Postgres GameId where
+  fromBackendRow = GameId <$> fromBackendRow
+
+instance FromBackendRow Postgres Game where
+  fromBackendRow = (\(json :: Text) -> emptyGame) <$> fromBackendRow
+
+testDb = do
+  conn <- connectPostgreSQL "postgres:///licross_development"
+  let allGames = all_ (_licrossGames licrossDb)
+
+  runBeamPostgresDebug putStrLn conn $ do
+    games <- runSelectReturningList $ select allGames
+    mapM_ (liftIO . putStrLn . show) games
+-- END TODO
+--
 instance Servant.FromHttpApiData GameId where
   parseUrlPiece x = parseUrlPiece x >>= note "Invalid Game ID" . gameIdFromText
 
