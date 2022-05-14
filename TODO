@@ -1,5 +1,5 @@
 * Add beam as a dependency with psql
-* Create SQL schema file
+* [DONE] Create SQL schema file
 * AESON serialization for Game data type
 * non-async persistence
 * async persistence
