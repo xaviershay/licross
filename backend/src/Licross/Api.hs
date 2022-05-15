@@ -14,12 +14,11 @@
 {-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-#  LANGUAGE ImpredicativeTypes #-}
 
 module Licross.Api
   ( runServer
   , applyMove -- TODO: Move
-  , testDb
-  , testDbInsert
   ) where
 
 import qualified Control.Concurrent
@@ -27,6 +26,7 @@ import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar, 
 import Control.Concurrent.Chan
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
+import Control.Lens ((^.))
 import qualified Data.Aeson
 import qualified Data.Binary.Builder
 import qualified Data.HashMap.Strict as M -- unordered-containers
@@ -112,23 +112,15 @@ instance FromBackendRow Postgres Game where
 instance HasSqlValueSyntax be (PgJSONB Game) => HasSqlValueSyntax be Game where
   sqlValueSyntax x = sqlValueSyntax (PgJSONB x)
 
-testDbInsert = do
-  conn <- connectPostgreSQL "postgres:///licross_development"
+GameRecord
+  (LensFor gameRecordId)
+  (LensFor gameRecordRegion)
+  (LensFor gameRecordVersion)
+  (LensFor gameRecordData)
+  = tableLenses
+LicrossDb (TableLens licrossGames) = dbLenses
 
-  runBeamPostgresDebug putStrLn conn $ do
-    runInsert $
-      insert (_licrossGames licrossDb) $
-        insertValues [ testRecord ]
-
-testRecord = GameRecord @Identity (GameId "abcde") "dev" 2 emptyGame
-
-testDb = do
-  conn <- connectPostgreSQL "postgres:///licross_development"
-  let allGames = all_ (_licrossGames licrossDb)
-
-  runBeamPostgresDebug putStrLn conn $ do
-    games <- runSelectReturningList $ select allGames
-    mapM_ (liftIO . putStrLn . show) games
+runDb = runBeamPostgresDebug putStrLn
 -- END TODO
 --
 instance Servant.FromHttpApiData GameId where
@@ -174,23 +166,34 @@ example = return . eventStreamIO $ \emit -> do
 joinGame :: GameId -> Maybe PlayerId -> AppM ()
 joinGame _ Nothing = throwError $ err400 {errBody = "Must provide playerId" }
 joinGame gid (Just pid) = do
-  State {games = gs} <- ask
+  State {games = gs, conns = pool} <- ask
   -- This pattern feels like it could be cleaner. Revisit once more examples of
   -- changing game state.
   updated <- liftIO . atomically $ do
     x <- readTVar gs
 
+    -- TODO: This is all pretty gross
     case M.lookup gid x of
-      Nothing -> return False
+      Nothing -> return Nothing
       Just game -> do
         modifyTVar gs (M.adjust (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer pid "Unknown"))) gid)
-        return True
-
-    -- TODO: persist game state to database
+        newGame <- fromJust . M.lookup gid <$> readTVar gs
+        return $ Just newGame
 
   case updated of
-    False -> throwError $ err404 { errBody = "Game not found" }
-    True -> return ()
+    Nothing -> throwError $ err404 { errBody = "Game not found" }
+    Just newGame -> do
+      liftIO $ withResource pool $ \conn ->
+        runDb conn $
+          runUpdate $
+            update (licrossDb ^. licrossGames)
+              (\gameRecord -> mconcat
+                               [ gameRecord ^. gameRecordData <-. val_ newGame
+                               , gameRecord ^. gameRecordVersion <-. val_ (newGame ^. gameVersion)
+                               ])
+              (\gameRecord -> gameRecord ^. gameRecordVersion <. val_ (newGame ^. gameVersion))
+
+      return ()
 
 -- TODO: Region
 toRecord gid g = GameRecord @Identity gid "dev" (view gameVersion g) g
@@ -203,7 +206,7 @@ newGame = do
     atomically $ modifyTVar gs (M.insert id template)
 
     withResource pool $ \conn ->
-      runBeamPostgresDebug putStrLn conn $ do
+      runDb conn $ do
         runInsert $
           insert (_licrossGames licrossDb) $
             insertValues [ toRecord id template ]
