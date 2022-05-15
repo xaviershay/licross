@@ -22,7 +22,7 @@ module Licross.Api
   ) where
 
 import qualified Control.Concurrent
-import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar, check, writeTVar) -- stm
+import Control.Concurrent.STM (TVar, atomically, modifyTVar, newTVar, readTVar, check, writeTVar, STM(..)) -- stm
 import Control.Concurrent.Chan
 import Control.Monad.Reader (ReaderT, ask, runReaderT) -- mtl
 import Control.Monad.Trans (liftIO) -- mtl
@@ -213,6 +213,49 @@ newGame = do
 
     return id
 
+-- # Modify
+-- Fly-replay if wrong region (need region [from ID])
+-- Look up game (need ID)
+-- Rehydrate if doesn't exist
+--   404 if still doesn't exist
+-- Apply STM action, returning the modified game (TODO: version check!)
+-- Persist the new game
+-- Return nothing
+
+-- ## Subscribe
+-- Fly-replay if wrong region (need region [from ID])
+-- Look up game (need ID)
+-- Rehydrate if doesn't exist
+--   404 if still doesn't exist
+--
+--
+
+rehydrate :: GameId -> AppM (Maybe Game)
+rehydrate gid = do
+  State {games = gs, templateGame = template, conns = pool} <- ask
+
+  gameRecord <- liftIO $ withResource pool $ \conn ->
+                  runDb conn $ do
+                    runSelectReturningOne $ select
+                      (filter_ (\gr -> gr ^. gameRecordId ==. val_ gid) $ all_ (licrossDb ^. licrossGames))
+
+  return $ Just emptyGame
+
+blah :: GameId -> (Game -> STM Game) -> AppM Game
+blah gid action = do
+  State {games = gs} <- ask
+
+  newGame <- liftIO . atomically $ do
+    x <- readTVar gs
+
+    case M.lookup gid x of
+      Nothing -> return Nothing
+      Just game -> Just <$> action game
+
+  case newGame of
+    Just x -> return x
+    Nothing -> undefined --rehydrate
+  
 postMove :: GameId -> Maybe PlayerId -> Move -> AppM ()
 postMove gid pid move = do
   State {games = gs} <- ask
