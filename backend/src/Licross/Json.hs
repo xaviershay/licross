@@ -58,7 +58,6 @@ instance ToJSON RedactedGame where
       , "players" .= (M.elems $ view gamePlayers x)
       ]
   toJSON (RedactedGame Nothing x) =
-    -- TODO: Redact tiles in racks/bag
     object
       [ "board" .= view gameBoard x
       , "tiles" .= (M.elems $ view gameTiles x)

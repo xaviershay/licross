@@ -119,21 +119,8 @@ example = return . eventStreamIO $ \emit -> do
 joinGame :: GameId -> Maybe PlayerId -> AppM ()
 joinGame _ Nothing = throwError $ err400 {errBody = "Must provide playerId" }
 joinGame gid (Just pid) = do
-  State {games = gs, conns = pool} <- ask
-
-  updated <- modifyGame gid $ \game -> do
-               let newGame = (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer pid "Unknown"))) game
-               modifyTVar gs (M.insert gid newGame)
-               return newGame
-
-  case updated of
-    Nothing -> throwError $ err404 { errBody = "Game not found" }
-    Just newGame -> do
-      liftIO . withResource pool $ \conn ->
-        execute conn "UPDATE games SET version = ?, data = ? WHERE id = ? AND version < ?"
-          (view gameVersion newGame, newGame, gid, view gameVersion newGame)
-
-      return ()
+  modifyGameWithPersist gid
+    (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer pid "Unknown")))
 
 newGame :: AppM GameId
 newGame = do
@@ -147,23 +134,6 @@ newGame = do
         (id, "dev" :: String, view gameVersion template, template)
 
     return id
-
--- # Modify
--- Fly-replay if wrong region (need region [from ID])
--- Look up game (need ID)
--- Rehydrate if doesn't exist
---   404 if still doesn't exist
--- Apply STM action, returning the modified game (TODO: version check!)
--- Persist the new game
--- Return nothing
-
--- ## Subscribe
--- Fly-replay if wrong region (need region [from ID])
--- Look up game (need ID)
--- Rehydrate if doesn't exist
---   404 if still doesn't exist
---
---
 
 rehydrate :: GameId -> AppM (Maybe Game)
 rehydrate gid = do
@@ -198,16 +168,11 @@ modifyGame gid action = do
         Just x -> modifyGame gid action
         Nothing -> return Nothing
 
--- TODO: DRY with joinGame
-postMove :: GameId -> Maybe PlayerId -> Move -> AppM ()
-postMove gid pid move = do
+modifyGameWithPersist gid f = do
   State {games = gs, conns = pool} <- ask
 
   updated <- modifyGame gid $ \game -> do
-               let newGame =
-                      ( over gameVersion (1 +)
-                      . applyMove move
-                      ) game
+               let newGame = f game
 
                modifyTVar gs (M.insert gid newGame)
                return newGame
@@ -221,6 +186,13 @@ postMove gid pid move = do
 
       return ()
 
+-- TODO: validation on whether player can make the move
+postMove :: GameId -> Maybe PlayerId -> Move -> AppM ()
+postMove gid pid move =
+  modifyGameWithPersist gid
+    ( over gameVersion (1 +)
+    . applyMove move
+    )
 
 applyMove (PlayTiles []) = id
 applyMove (PlayTiles (t:ts)) =
@@ -267,25 +239,10 @@ fillRacks game =
 
 startGame :: GameId -> AppM ()
 startGame gid = do
-  State {games = gs, conns = pool} <- ask
-
-  updated <- modifyGame gid $ \game -> do
-               let newGame =
+  modifyGameWithPersist gid
                       ( over gameVersion (1 +)
                       . fillRacks
-                      ) game
-
-               modifyTVar gs (M.insert gid newGame)
-               return newGame
-
-  case updated of
-    Nothing -> throwError $ err404 { errBody = "Game not found" }
-    Just newGame -> do
-      liftIO . withResource pool $ \conn ->
-        execute conn "UPDATE games SET version = ?, data = ? WHERE id = ? AND version < ?"
-          (view gameVersion newGame, newGame, gid, view gameVersion newGame)
-
-      return ()
+                      )
 
 -- TODO: Move to extras dir, contribute back
 eventStreamIO :: ((Network.Wai.EventSource.ServerEvent -> IO()) -> IO ()) -> Application
