@@ -126,6 +126,8 @@ instance ToJSON TileId
 instance FromJSON TileId
 instance Hashable TileId
 
+instance FromJSON PlayerId
+
 data TileLocation = LocationBoard Position | LocationRack PlayerId | LocationBag deriving (Show, Eq)
 
 instance ToJSON TileLocation where
@@ -140,6 +142,7 @@ instance FromJSON TileLocation where
     case t of
       "bag" -> return LocationBag
       "board" -> LocationBoard <$> v .: "position"
+      "rack" -> LocationRack <$> v .: "player"
       _ -> fail . show $ "Unimplemented TileLocation type: " <> t
 
 data Tile = Tile

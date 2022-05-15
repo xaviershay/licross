@@ -49,78 +49,31 @@ import Licross.Json
 import Licross.Prelude
 import Licross.Types
 
-
-
-
-
-
 -- TODO: Extract to more appropriate module once we know what we're doing
 
-import Database.Beam hiding (set)
-import Database.Beam.Postgres
-import Data.Text (Text)
+-- import Database.Beam hiding (set)
+-- import Database.Beam.Postgres
+-- import Data.Text (Text)
 import Database.PostgreSQL.Simple
+import Database.PostgreSQL.Simple.ToField
+import Database.PostgreSQL.Simple.FromRow
 import GHC.Int (Int32(..))
-import Database.Beam.Backend.SQL
 
-data GameRecordT f
-    = GameRecord
-    { _gameRecordId      :: C f GameId
-    , _gameRecordRegion  :: C f Text
-    , _gameRecordVersion :: C f Int32
-    , _gameRecordData    :: C f Game }
-    deriving Generic
+instance ToField GameId where
+  toField (GameId x) = toField x
 
-type GameRecord = GameRecordT Identity
-type GameRecordId = PrimaryKey GameRecordT Identity
+instance ToField Game where
+  toField x = toField $ Data.Aeson.encode x
 
-deriving instance Show GameRecord
-deriving instance Eq GameRecord
-instance Beamable GameRecordT
+instance FromRow Game where
+  -- TODO: This encode/decode is dumb, just a quick hack (field type is Value)
+  fromRow = do
+    result <- Data.Aeson.fromJSON <$> (field :: RowParser Data.Aeson.Value)
 
-instance Table GameRecordT where
-   data PrimaryKey GameRecordT f = GameRecordId (C f GameId)
-     deriving (Generic, Beamable)
-   primaryKey = GameRecordId . _gameRecordId
+    case result of
+      Data.Aeson.Success x -> return x
+      Data.Aeson.Error msg -> error msg
 
-data LicrossDb f = LicrossDb
-                      { _licrossGames :: f (TableEntity GameRecordT) }
-                        deriving (Generic, Database be)
-
-licrossDb :: DatabaseSettings be LicrossDb
-licrossDb = defaultDbSettings `withDbModification`
-              dbModification {
-                _licrossGames =
-                  modifyTableFields
-                    tableModification {
-                      _gameRecordId = "id"
-                      , _gameRecordRegion = "region"
-                      , _gameRecordVersion = "version"
-                      , _gameRecordData = "data"
-                    }
-              }
-
-instance FromBackendRow Postgres GameId where
-  fromBackendRow = GameId <$> fromBackendRow
-
-instance HasSqlValueSyntax be Text => HasSqlValueSyntax be GameId where
-  sqlValueSyntax (GameId x) = sqlValueSyntax x
-
-instance FromBackendRow Postgres Game where
-  fromBackendRow = (\(PgJSONB g) -> g) <$> fromBackendRow
-
-instance HasSqlValueSyntax be (PgJSONB Game) => HasSqlValueSyntax be Game where
-  sqlValueSyntax x = sqlValueSyntax (PgJSONB x)
-
-GameRecord
-  (LensFor gameRecordId)
-  (LensFor gameRecordRegion)
-  (LensFor gameRecordVersion)
-  (LensFor gameRecordData)
-  = tableLenses
-LicrossDb (TableLens licrossGames) = dbLenses
-
-runDb = runBeamPostgresDebug putStrLn
 -- END TODO
 --
 instance Servant.FromHttpApiData GameId where
@@ -167,36 +120,20 @@ joinGame :: GameId -> Maybe PlayerId -> AppM ()
 joinGame _ Nothing = throwError $ err400 {errBody = "Must provide playerId" }
 joinGame gid (Just pid) = do
   State {games = gs, conns = pool} <- ask
-  -- This pattern feels like it could be cleaner. Revisit once more examples of
-  -- changing game state.
-  updated <- liftIO . atomically $ do
-    x <- readTVar gs
 
-    -- TODO: This is all pretty gross
-    case M.lookup gid x of
-      Nothing -> return Nothing
-      Just game -> do
-        modifyTVar gs (M.adjust (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer pid "Unknown"))) gid)
-        newGame <- fromJust . M.lookup gid <$> readTVar gs
-        return $ Just newGame
+  updated <- modifyGame gid $ \game -> do
+               let newGame = (over gameVersion (1 +) . over gamePlayers (M.insert pid (mkPlayer pid "Unknown"))) game
+               modifyTVar gs (M.insert gid newGame)
+               return newGame
 
   case updated of
     Nothing -> throwError $ err404 { errBody = "Game not found" }
     Just newGame -> do
-      liftIO $ withResource pool $ \conn ->
-        runDb conn $
-          runUpdate $
-            update (licrossDb ^. licrossGames)
-              (\gameRecord -> mconcat
-                               [ gameRecord ^. gameRecordData <-. val_ newGame
-                               , gameRecord ^. gameRecordVersion <-. val_ (newGame ^. gameVersion)
-                               ])
-              (\gameRecord -> gameRecord ^. gameRecordVersion <. val_ (newGame ^. gameVersion))
+      liftIO . withResource pool $ \conn ->
+        execute conn "UPDATE games SET version = ?, data = ? WHERE id = ? AND version < ?"
+          (view gameVersion newGame, newGame, gid, view gameVersion newGame)
 
       return ()
-
--- TODO: Region
-toRecord gid g = GameRecord @Identity gid "dev" (view gameVersion g) g
 
 newGame :: AppM GameId
 newGame = do
@@ -206,10 +143,8 @@ newGame = do
     atomically $ modifyTVar gs (M.insert id template)
 
     withResource pool $ \conn ->
-      runDb conn $ do
-        runInsert $
-          insert (_licrossGames licrossDb) $
-            insertValues [ toRecord id template ]
+      execute conn "INSERT INTO games VALUES (?, ?, ?, ?)"
+        (id, "dev" :: String, view gameVersion template, template)
 
     return id
 
@@ -232,17 +167,19 @@ newGame = do
 
 rehydrate :: GameId -> AppM (Maybe Game)
 rehydrate gid = do
-  State {games = gs, templateGame = template, conns = pool} <- ask
+   State {games = gs, templateGame = template, conns = pool} <- ask
 
-  gameRecord <- liftIO $ withResource pool $ \conn ->
-                  runDb conn $ do
-                    runSelectReturningOne $ select
-                      (filter_ (\gr -> gr ^. gameRecordId ==. val_ gid) $ all_ (licrossDb ^. licrossGames))
+   games <- liftIO $ withResource pool $ \conn ->
+                   query conn "SELECT data FROM games WHERE id = ?" [gid]
 
-  return $ Just emptyGame
+   case games of
+     [x] -> do
+              liftIO . atomically $ modifyTVar gs (M.insert gid x)
+              return $ Just x
+     _   -> return Nothing
 
-blah :: GameId -> (Game -> STM Game) -> AppM Game
-blah gid action = do
+modifyGame :: GameId -> (Game -> STM Game) -> AppM (Maybe Game)
+modifyGame gid action = do
   State {games = gs} <- ask
 
   newGame <- liftIO . atomically $ do
@@ -253,31 +190,36 @@ blah gid action = do
       Just game -> Just <$> action game
 
   case newGame of
-    Just x -> return x
-    Nothing -> undefined --rehydrate
-  
+    Just x -> return $ Just x
+    Nothing -> do
+      reGame <- rehydrate gid
+
+      case reGame of
+        Just x -> modifyGame gid action
+        Nothing -> return Nothing
+
+-- TODO: DRY with joinGame
 postMove :: GameId -> Maybe PlayerId -> Move -> AppM ()
 postMove gid pid move = do
-  State {games = gs} <- ask
+  State {games = gs, conns = pool} <- ask
 
-  updated <- liftIO . atomically $ do
-    x <- readTVar gs
+  updated <- modifyGame gid $ \game -> do
+               let newGame =
+                      ( over gameVersion (1 +)
+                      . applyMove move
+                      ) game
 
-    case M.lookup gid x of
-      Nothing -> return False
-      Just game -> do
-        modifyTVar gs
-          (M.adjust
-            ( over gameVersion (1 +)
-            . applyMove move
-            ) gid
-          )
-        return True
+               modifyTVar gs (M.insert gid newGame)
+               return newGame
 
-  -- TODO: persist move to database async (change type of updated to Maybe Game)
   case updated of
-    False -> throwError $ err404 { errBody = "Game not found" }
-    True -> return ()
+    Nothing -> throwError $ err404 { errBody = "Game not found" }
+    Just newGame -> do
+      liftIO . withResource pool $ \conn ->
+        execute conn "UPDATE games SET version = ?, data = ? WHERE id = ? AND version < ?"
+          (view gameVersion newGame, newGame, gid, view gameVersion newGame)
+
+      return ()
 
 
 applyMove (PlayTiles []) = id
@@ -325,21 +267,25 @@ fillRacks game =
 
 startGame :: GameId -> AppM ()
 startGame gid = do
-  State {games = gs} <- ask
-  -- This pattern feels like it could be cleaner. Revisit once more examples of
-  -- changing game state.
-  updated <- liftIO . atomically $ do
-    x <- readTVar gs
+  State {games = gs, conns = pool} <- ask
 
-    case M.lookup gid x of
-      Nothing -> return False
-      Just game -> do
-        modifyTVar gs (M.adjust (over gameVersion (1 +) . fillRacks) gid)
-        return True
+  updated <- modifyGame gid $ \game -> do
+               let newGame =
+                      ( over gameVersion (1 +)
+                      . fillRacks
+                      ) game
+
+               modifyTVar gs (M.insert gid newGame)
+               return newGame
 
   case updated of
-    False -> throwError $ err404 { errBody = "Game not found" }
-    True -> return ()
+    Nothing -> throwError $ err404 { errBody = "Game not found" }
+    Just newGame -> do
+      liftIO . withResource pool $ \conn ->
+        execute conn "UPDATE games SET version = ?, data = ? WHERE id = ? AND version < ?"
+          (view gameVersion newGame, newGame, gid, view gameVersion newGame)
+
+      return ()
 
 -- TODO: Move to extras dir, contribute back
 eventStreamIO :: ((Network.Wai.EventSource.ServerEvent -> IO()) -> IO ()) -> Application
@@ -359,6 +305,8 @@ subscribeGame :: GameId -> PlayerId -> AppM Application
 subscribeGame gid pid = do
   State {games = gs} <- ask
 
+  modifyGame gid return
+
   return $ eventStreamIO (handle gs 0)
 
   where
@@ -373,7 +321,6 @@ subscribeGame gid pid = do
                           check $ view gameVersion game >= lastVersion
                           return $ Just game
 
-      -- TODO: Try rehydrating game if Nothing
       maybeGame <- action
 
       case maybeGame of

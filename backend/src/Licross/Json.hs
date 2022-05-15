@@ -81,7 +81,7 @@ instance FromJSON Game where
   parseJSON = withObject "Game" $ \v -> do
     tiles :: [Tile] <- v .: "tiles"
     board :: M.HashMap Position Space <- v .: "board"
-    version :: Int32 <- v .: "version"
+    version :: Int32 <- v .:? "version" .!= 0
 
     return
       . set gameBoard board
