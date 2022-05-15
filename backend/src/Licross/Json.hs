@@ -43,7 +43,20 @@ instance FromJSON Tile where
 instance ToJSON Space where
   toJSON = toJSON . view spaceBonus
 
+visibleBy :: PlayerId -> Tile -> Bool
+visibleBy pid tile = 
+  case view tileLocation tile of
+    LocationBoard _   -> True
+    LocationBag       -> False
+    LocationRack pid' -> pid == pid'
+
 instance ToJSON RedactedGame where
+  toJSON (RedactedGame (Just pid) x) =
+    object
+      [ "board" .= view gameBoard x
+      , "tiles" .= filter (visibleBy pid) (M.elems $ view gameTiles x)
+      , "players" .= (M.elems $ view gamePlayers x)
+      ]
   toJSON (RedactedGame Nothing x) =
     -- TODO: Redact tiles in racks/bag
     object

@@ -330,7 +330,7 @@ subscribeGame gid pid = do
             (Just "snapshot")
             Nothing
             [ Data.Binary.Builder.fromLazyByteString
-                (Data.Aeson.encode $ RedactedGame Nothing game)
+                (Data.Aeson.encode $ RedactedGame (Just pid) game)
             ]
 
           handle gs (view gameVersion game + 1) emit
