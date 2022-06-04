@@ -2,4 +2,6 @@
 
 set -ex
 
+dropdb licross_development || true
 createdb licross_development
+cat migrations/20220514-initial.sql | psql licross_development

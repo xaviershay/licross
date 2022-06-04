@@ -130,7 +130,7 @@ newGame = do
     atomically $ modifyTVar gs (M.insert id template)
 
     withResource pool $ \conn ->
-      execute conn "INSERT INTO games VALUES (?, ?, ?, ?)"
+      execute conn "INSERT INTO games (id, region, version, data) VALUES (?, ?, ?, ?)"
         (id, "dev" :: String, view gameVersion template, template)
 
     return id
@@ -181,7 +181,7 @@ modifyGameWithPersist gid f = do
     Nothing -> throwError $ err404 { errBody = "Game not found" }
     Just newGame -> do
       liftIO . withResource pool $ \conn ->
-        execute conn "UPDATE games SET version = ?, data = ? WHERE id = ? AND version < ?"
+        execute conn "UPDATE games SET version = ?, data = ?, updated_at = NOW() WHERE id = ? AND version < ?"
           (view gameVersion newGame, newGame, gid, view gameVersion newGame)
 
       return ()
